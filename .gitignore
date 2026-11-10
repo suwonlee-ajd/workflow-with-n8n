@@ -1,0 +1,11 @@
+# 비밀값 (DB 비밀번호·암호화 키·API 키) — 커밋 금지
+services/n8n/.env
+secrets/
+
+# 설치·실행 결과물
+services/n8n-mcp/node_modules/
+data/
+tmp/
+
+# OS
+.DS_Store
