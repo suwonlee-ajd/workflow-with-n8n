@@ -1,0 +1,695 @@
+{
+  "updatedAt": "2026-11-11T09:56:49.693Z",
+  "createdAt": "2026-11-11T05:33:02.683Z",
+  "id": "FzOCm40kL4jHbPOg",
+  "name": "주식: 종목 선별 공통",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "1a225ee8-3fb4-4f31-826b-87ff4f2c97f0",
+      "name": "설명",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -280
+      ],
+      "parameters": {
+        "width": 1000,
+        "height": 460,
+        "content": "## 주식: 종목 선별 공통 (서브 워크플로우)\n국내 종목 선별 워크플로우가 시세를 모아 넘기면, 지표 계산부터 Slack 전송·기록까지 처리합니다.\n\n**입력**: market(KR), marketLabel, baseDate, candidates(후보 종목), days(날짜별 시세), indicators(시장 지표 수집 결과), settings(실행 설정)\n\n**선별 조건** (기본값. 국내 종목 선별의 '실행 설정'에서 바꿈)\n- 종가 > 20일 평균, 20일 평균 > 60일 평균 (상승 추세)\n- 거래량 ≥ 20일 평균의 1.5배, RSI(14) < 70 (과열 제외)\n- 점수 100점 = 거래량 40 + 추세 30 + RSI 30\n- 시장 주의 신호(VIX 25 이상, KOSPI가 20일 평균 아래, 원/달러 하루 1% 이상 상승)가 있으면 선정 수를 절반으로\n\n**준비 사항**\n1. Slack 채널 `C0BDULL98NL` (바꾸려면 **Slack 전송** 노드에서 변경, 새 채널에는 Slack 앱(봇) 초대 필요)\n2. 선정 결과는 Data Table **주식 선별 기록**에 쌓임\n3. 고친 뒤에는 다시 게시(Publish)해야 국내 종목 선별에서 부를 때 반영됨"
+      }
+    },
+    {
+      "id": "269751d5-3e3e-4119-bbfd-6b2b13a7e817",
+      "name": "다른 워크플로우에서 호출",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "market",
+              "type": "string"
+            },
+            {
+              "name": "marketLabel",
+              "type": "string"
+            },
+            {
+              "name": "baseDate",
+              "type": "string"
+            },
+            {
+              "name": "candidates",
+              "type": "array"
+            },
+            {
+              "name": "days",
+              "type": "array"
+            },
+            {
+              "name": "indicators",
+              "type": "object"
+            },
+            {
+              "name": "settings",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "e6a25f34-9818-4cca-bf1e-ea985976f0b4",
+      "name": "지표 계산·선별",
+      "notesInFlow": true,
+      "notes": "Why Code: 이동평균·RSI처럼 날짜 순서대로 이어서 계산하는 지표는 Summarize·Filter 같은 기본 노드로 만들 수 없음",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const input = $('다른 워크플로우에서 호출').first().json;\nconst s = input.settings || {};\nconst positive = (v, fallback) => (Number(v) > 0 ? Number(v) : fallback);\nconst opt = {\n  topN: positive(s.topN, 10),\n  minVolRatio: positive(s.minVolRatio, 1.5),\n  maxRsi: positive(s.maxRsi, 70),\n  vixCaution: positive(s.vixCaution, 25),\n};\nconst round = (x, d = 2) => (x === null || x === undefined || !Number.isFinite(x)) ? null : Math.round(x * 10 ** d) / 10 ** d;\nconst avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;\nconst clamp01 = (x) => Math.max(0, Math.min(1, x));\n\n// RSI(14), Wilder 방식\nfunction rsi(closes, period = 14) {\n  if (closes.length <= period) return null;\n  let gain = 0;\n  let loss = 0;\n  for (let i = 1; i <= period; i++) {\n    const change = closes[i] - closes[i - 1];\n    if (change > 0) gain += change; else loss -= change;\n  }\n  let avgGain = gain / period;\n  let avgLoss = loss / period;\n  for (let i = period + 1; i < closes.length; i++) {\n    const change = closes[i] - closes[i - 1];\n    avgGain = (avgGain * (period - 1) + Math.max(change, 0)) / period;\n    avgLoss = (avgLoss * (period - 1) + Math.max(-change, 0)) / period;\n  }\n  if (avgLoss === 0) return 100;\n  return 100 - 100 / (1 + avgGain / avgLoss);\n}\n\n// 날짜별 시세를 종목별 시계열로 묶음\nconst candidates = new Map((input.candidates || []).map(c => [c.code, c]));\nconst byCode = new Map();\nfor (const day of input.days || []) {\n  for (const r of day.rows || []) {\n    if (!candidates.has(r.code) || !(r.close > 0)) continue;\n    if (!byCode.has(r.code)) byCode.set(r.code, new Map());\n    byCode.get(r.code).set(day.date, r);\n  }\n}\n\nconst passed = [];\nlet evaluated = 0;\nlet skipped = 0;\nfor (const [code, byDate] of byCode) {\n  const series = [...byDate.entries()]\n    .sort((a, b) => a[0].localeCompare(b[0]))\n    .map(([date, r]) => ({ ...r, date }));\n  const n = series.length;\n  // 60일 이동평균에 61거래일이 필요하고, 기준일에 거래가 있어야 함\n  if (n < 61 || series[n - 1].date !== input.baseDate) {\n    skipped++;\n    continue;\n  }\n  evaluated++;\n  const closes = series.map(r => r.close);\n  const volumes = series.map(r => r.volume);\n  const last = series[n - 1];\n  const ma20 = avg(closes.slice(-20));\n  const ma60 = avg(closes.slice(-60));\n  const rsi14 = rsi(closes);\n  const volume20 = avg(volumes.slice(-21, -1));\n  const volRatio = volume20 > 0 ? last.volume / volume20 : null;\n\n  const ok = last.close > ma20\n    && ma20 > ma60\n    && volRatio !== null && volRatio >= opt.minVolRatio\n    && rsi14 !== null && rsi14 < opt.maxRsi;\n  if (!ok) continue;\n\n  // 점수(100점): 거래량 40 + 추세 30 + RSI 30\n  const score = 40 * clamp01(volRatio / 3)\n    + 30 * clamp01((ma20 / ma60 - 1) / 0.1)\n    + 30 * clamp01(1 - Math.abs(rsi14 - 60) / 20);\n  const info = candidates.get(code) || {};\n  passed.push({\n    code,\n    name: info.name || last.name || code,\n    board: info.board || last.board || '',\n    close: last.close,\n    change1dPct: round((closes[n - 1] / closes[n - 2] - 1) * 100),\n    change5dPct: round((closes[n - 1] / closes[n - 6] - 1) * 100),\n    vsMa20Pct: round((last.close / ma20 - 1) * 100),\n    ma20OverMa60Pct: round((ma20 / ma60 - 1) * 100),\n    rsi14: round(rsi14, 1),\n    volRatio: round(volRatio),\n    value: Math.round(last.value || 0),\n    score: round(score, 1),\n  });\n}\npassed.sort((a, b) => b.score - a.score);\n\n// 시장이 불안하면 선정 수를 절반으로 줄임\nconst ind = input.indicators || {};\nconst cautionReasons = [];\nconst vix = ind.us && ind.us.vix ? ind.us.vix.value : null;\nif (Number.isFinite(vix) && vix >= opt.vixCaution) cautionReasons.push(`VIX ${vix} (기준 ${opt.vixCaution} 이상)`);\nconst kospi = ind.kr && ind.kr.kospi ? ind.kr.kospi.vsMa20Pct : null;\nif (Number.isFinite(kospi) && kospi < 0) cautionReasons.push(`KOSPI가 20일 평균보다 ${Math.abs(kospi)}% 아래`);\nconst usdKrw = ind.fx && ind.fx.usdKrw ? ind.fx.usdKrw.changePct : null;\nif (Number.isFinite(usdKrw) && usdKrw >= 1) cautionReasons.push(`원/달러 환율 하루 ${usdKrw}% 상승`);\nconst topN = cautionReasons.length ? Math.max(1, Math.ceil(opt.topN / 2)) : opt.topN;\nconst picks = passed.slice(0, topN).map((p, i) => ({ rank: i + 1, ...p }));\n\nreturn [{\n  json: {\n    picks,\n    meta: {\n      market: input.market,\n      marketLabel: input.marketLabel,\n      baseDate: input.baseDate,\n      candidateCount: candidates.size,\n      evaluated,\n      skipped,\n      passed: passed.length,\n      topN,\n      caution: cautionReasons.length > 0,\n      cautionReasons,\n      criteria: `종가 > 20일 평균, 20일 평균 > 60일 평균, 거래량 ≥ 20일 평균의 ${opt.minVolRatio}배, RSI(14) < ${opt.maxRsi}`,\n    },\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "badf0c53-bfa8-4493-8d54-9f40e0400e72",
+      "name": "선정 종목 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "51e22d5c-1dda-49ce-957d-a59316b11efd",
+              "leftValue": "={{ $json.picks.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "373e77e5-5c82-4fb7-940c-8c0d721c2330",
+      "name": "선정 종목 나누기",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        200
+      ],
+      "parameters": {
+        "fieldToSplitOut": "picks",
+        "include": "noOtherFields",
+        "options": {}
+      }
+    },
+    {
+      "id": "7e26abca-3d09-45e8-8bcd-39561e15496a",
+      "name": "종목 뉴스 조회",
+      "notes": "Why HTTP: RSS Read 노드는 기사마다 항목을 나눠 종목과의 짝이 끊김. 응답을 통째로 받아 XML 노드로 변환",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "position": [
+        900,
+        200
+      ],
+      "parameters": {
+        "url": "https://news.google.com/rss/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ '\"' + $json.name + '\" when:3d' }}"
+            },
+            {
+              "name": "hl",
+              "value": "={{ $('다른 워크플로우에서 호출').first().json.settings.newsHl }}"
+            },
+            {
+              "name": "gl",
+              "value": "={{ $('다른 워크플로우에서 호출').first().json.settings.newsGl }}"
+            },
+            {
+              "name": "ceid",
+              "value": "={{ $('다른 워크플로우에서 호출').first().json.settings.newsCeid }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "263b7628-20f9-407f-a9a1-871e64d3168f",
+      "name": "뉴스 XML 변환",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "onError": "continueRegularOutput",
+      "position": [
+        1120,
+        200
+      ],
+      "parameters": {
+        "mode": "xmlToJson",
+        "dataPropertyName": "data",
+        "options": {
+          "explicitArray": false,
+          "ignoreAttrs": true
+        }
+      }
+    },
+    {
+      "id": "abf81fe3-8b9f-405b-a62c-99719097758c",
+      "name": "선정 기록 저장",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1340,
+        200
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "lISVsq1LcXoI9Pas",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runAt": "={{ $now.toISO() }}",
+            "market": "={{ $('다른 워크플로우에서 호출').first().json.market }}",
+            "baseDate": "={{ $('다른 워크플로우에서 호출').first().json.baseDate }}",
+            "rank": "={{ $('선정 종목 나누기').item.json.rank }}",
+            "code": "={{ $('선정 종목 나누기').item.json.code }}",
+            "name": "={{ $('선정 종목 나누기').item.json.name }}",
+            "close": "={{ $('선정 종목 나누기').item.json.close }}",
+            "change1dPct": "={{ $('선정 종목 나누기').item.json.change1dPct }}",
+            "vsMa20Pct": "={{ $('선정 종목 나누기').item.json.vsMa20Pct }}",
+            "rsi14": "={{ $('선정 종목 나누기').item.json.rsi14 }}",
+            "volRatio": "={{ $('선정 종목 나누기').item.json.volRatio }}",
+            "score": "={{ $('선정 종목 나누기').item.json.score }}",
+            "headlines": "={{ [].concat(($json.rss && $json.rss.channel && $json.rss.channel.item) || []).slice(0, 3).map(a => a.title).join(' | ') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runAt",
+              "displayName": "runAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "market",
+              "displayName": "market",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "baseDate",
+              "displayName": "baseDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "rank",
+              "displayName": "rank",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "code",
+              "displayName": "code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "close",
+              "displayName": "close",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "change1dPct",
+              "displayName": "change1dPct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vsMa20Pct",
+              "displayName": "vsMa20Pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "rsi14",
+              "displayName": "rsi14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "volRatio",
+              "displayName": "volRatio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "headlines",
+              "displayName": "headlines",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fa855f4a-fef9-467d-8e84-58aefbea924a",
+      "name": "선정 종목 합치기",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        200
+      ],
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "picks",
+        "include": "allFields",
+        "options": {}
+      }
+    },
+    {
+      "id": "0eb96fad-8dac-4ef5-af8b-5cacd08c782c",
+      "name": "AI 브리핑 작성",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "position": [
+        1780,
+        200
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=시장: {{ $('다른 워크플로우에서 호출').first().json.marketLabel }}\n기준일: {{ $('다른 워크플로우에서 호출').first().json.baseDate }}\n가격 단위: {{ $('다른 워크플로우에서 호출').first().json.settings.currency }}\n\n[시장 지표]\n{{ $('다른 워크플로우에서 호출').first().json.indicators.summaryText }}\n\n[선별 요약]\n조건: {{ $('지표 계산·선별').first().json.meta.criteria }}\n후보 {{ $('지표 계산·선별').first().json.meta.candidateCount }}종목 중 {{ $('지표 계산·선별').first().json.meta.evaluated }}종목 평가, {{ $('지표 계산·선별').first().json.meta.passed }}종목 통과, 상위 {{ $('지표 계산·선별').first().json.meta.topN }}종목까지 선정\n시장 주의 신호: {{ $('지표 계산·선별').first().json.meta.cautionReasons.join(', ') || '없음' }}\n\n[선정 종목]\n{{ JSON.stringify($json.picks) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "너는 주식 종목 선별 결과를 Slack 채널에 올릴 한국어 메시지로 정리한다. 사용자가 준 데이터만 쓴다.\n\n[출력 형식]\n- Slack mrkdwn만 쓴다: 굵게는 *텍스트*, 기울임은 _텍스트_. 마크다운 제목(#), 표, 코드 블록은 쓰지 않는다\n- 물결표(~)는 Slack에서 취소선이 되므로 쓰지 않는다. 범위는 'A에서 B'처럼 쓴다\n- 아래 구성과 순서를 그대로 따르고, 인사말이나 맺음말은 넣지 않는다\n\n첫 줄: *📈 (기준일을 M월 d일로) (시장) 종목 선별*\n둘째 줄: 시장 지표를 한두 줄로 요약해 _기울임_으로 쓴다. 시장 주의 신호가 있으면 ⚠️로 시작하고 [선별 요약]의 신호 문장을 그대로 쓴다\n\n종목마다 아래 예시처럼 서너 줄을 쓴다. 예시의 종목과 숫자는 형식만 보여 주는 것이고, 실제 값은 데이터에서 가져온다:\n*1. 삼성전자 (005930)* 종가 98,000원 · 전일 대비 +1.2% · 점수 72.5\n• 근거: 20일 평균 대비 +3.1% · 거래량 1.8배 · RSI 62.3\n• 뉴스: headlines를 바탕으로 한 줄 (headlines가 비어 있으면 이 줄은 뺀다)\n• 주의: 데이터에서 보이는 위험 한 줄 (예: 전일 급등, RSI 65 이상, 20일 평균과 거리가 큼)\n\n마지막 두 줄:\n_조건: (선별 요약의 조건) · 후보 (후보 수)종목 중 (통과 수)종목 통과_\n_조건에 맞는 후보 목록이며 매수·매도 추천이 아닙니다._\n\n[규칙]\n- 숫자는 데이터에 있는 값을 그대로 쓰고, 새로 계산하거나 추측하지 않는다\n- 종가에는 천 단위 쉼표를 넣고, 전일 대비와 20일 평균 대비에는 + 또는 - 부호를 붙인다\n- vsMa20Pct, volRatio 같은 영어 필드 이름은 메시지에 쓰지 않는다\n- '매수', '사라', '추천' 같은 권유 표현을 쓰지 않는다\n- 뉴스 제목 끝의 ' - 언론사'는 지운다. 영어 뉴스는 한국어로 옮겨 요약한다\n- 필드 뜻: rank 순위, close 종가, change1dPct 전일 대비 %, vsMa20Pct 20일 평균 대비 %, rsi14 RSI(14), volRatio 20일 평균 대비 거래량 배수, score 점수(100점 만점), headlines 최근 3일 뉴스 제목(| 로 구분)"
+            }
+          ]
+        },
+        "batching": {}
+      }
+    },
+    {
+      "id": "0d9bfc9f-0637-4182-944b-02ca0a61276b",
+      "name": "OpenAI 모델",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1780,
+        420
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "CjyhLLyPLDUA0SNF",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "id": "91b79eca-ae3a-4c0d-b726-2b960fb542d8",
+      "name": "선정 없음 안내",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        680,
+        520
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b669cd85-17db-4d74-9603-1f227efb568c",
+              "name": "text",
+              "value": "=*📈 {{ DateTime.fromISO($('지표 계산·선별').first().json.meta.baseDate).toFormat('M월 d일') }} {{ $('지표 계산·선별').first().json.meta.marketLabel }} 종목 선별*\n조건에 맞는 종목이 없습니다.{{ $('지표 계산·선별').first().json.meta.caution ? ' ⚠️ 시장 주의 신호: ' + $('지표 계산·선별').first().json.meta.cautionReasons.join(', ') : '' }}\n\n*시장 지표*\n{{ $('다른 워크플로우에서 호출').first().json.indicators.summaryText }}\n\n_조건: {{ $('지표 계산·선별').first().json.meta.criteria }} · 후보 {{ $('지표 계산·선별').first().json.meta.candidateCount }}종목 중 {{ $('지표 계산·선별').first().json.meta.evaluated }}종목 평가_",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5d2e53ab-f000-4ba7-ac13-33066c523713",
+      "name": "Slack 전송",
+      "webhookId": "d4671f2b-5c01-4587-b00f-8d2aa9c8bd07",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "position": [
+        2100,
+        300
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BDULL98NL",
+          "mode": "id"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "EoGU8ZNNC2TN9ZEZ",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "id": "d65a418c-18b9-4681-ac31-3aac8a35334a",
+      "name": "결과 반환",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2320,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b0abda86-ba2e-473a-bcd8-debf15752f2b",
+              "name": "ok",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "d769d448-b0e9-4fcc-97a3-1d276e2405b0",
+              "name": "market",
+              "value": "={{ $('다른 워크플로우에서 호출').first().json.market }}",
+              "type": "string"
+            },
+            {
+              "id": "eb41dc01-4113-4d44-a38f-e9d551a3d997",
+              "name": "baseDate",
+              "value": "={{ $('다른 워크플로우에서 호출').first().json.baseDate }}",
+              "type": "string"
+            },
+            {
+              "id": "bbb0e532-18f1-4496-ba89-1addc0c9a3c9",
+              "name": "pickCount",
+              "value": "={{ $('지표 계산·선별').first().json.picks.length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "다른 워크플로우에서 호출": {
+      "main": [
+        [
+          {
+            "node": "지표 계산·선별",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "지표 계산·선별": {
+      "main": [
+        [
+          {
+            "node": "선정 종목 있음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "선정 종목 있음?": {
+      "main": [
+        [
+          {
+            "node": "선정 종목 나누기",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "선정 없음 안내",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "선정 종목 나누기": {
+      "main": [
+        [
+          {
+            "node": "종목 뉴스 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "종목 뉴스 조회": {
+      "main": [
+        [
+          {
+            "node": "뉴스 XML 변환",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 XML 변환": {
+      "main": [
+        [
+          {
+            "node": "선정 기록 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "선정 기록 저장": {
+      "main": [
+        [
+          {
+            "node": "선정 종목 합치기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "선정 종목 합치기": {
+      "main": [
+        [
+          {
+            "node": "AI 브리핑 작성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 브리핑 작성": {
+      "main": [
+        [
+          {
+            "node": "Slack 전송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI 모델": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI 브리핑 작성",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "선정 없음 안내": {
+      "main": [
+        [
+          {
+            "node": "Slack 전송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack 전송": {
+      "main": [
+        [
+          {
+            "node": "결과 반환",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "000a1a10-f6e2-4147-a2bf-f7036712c824",
+  "activeVersionId": "000a1a10-f6e2-4147-a2bf-f7036712c824",
+  "versionCounter": 6,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
