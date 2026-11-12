@@ -33,7 +33,10 @@ root
 
 - `main`: 프로덕션 배포 브랜치
 - `develop`: 개발 통합 브랜치
-- `feature/*`: 기능 개발 브랜치 (develop에서 분기)
+- `feature/{서비스명}/{작업명}`: 기능 개발 브랜치 (develop에서 분기)
+  - 서비스명: `services/` 아래 디렉터리 이름 (예: `n8n`)
+  - 작업명: 작업 내용을 나타내는 영문 소문자 이름, 단어는 하이픈으로 연결 (예: `rules`, `stock-screener`)
+  - 예시: `feature/n8n/rules`, `feature/n8n/stock-screener`
 - `bugfix/*`: 긴급 수정 (main에서 분기)
 - `hotfix/*`: 긴급 수정 (main에서 분기)
 
