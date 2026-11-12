@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-11T04:08:35.646Z",
+  "updatedAt": "2026-11-11T05:36:55.309Z",
   "createdAt": "2026-11-11T02:43:25.501Z",
   "id": "VQni8PiSFcw0m0fA",
   "name": "brief-news-morning",
@@ -9,8 +9,8 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## 준비 사항\n1. **OpenAI 모델** 노드에 OpenAI 크레덴셜 연결\n2. **Slack 브리핑 전송** 노드의 Channel에서 채널 선택 (그 채널에 Slack 앱(봇) 초대 필요)\n3. 오전 9시에 n8n(로컬 Docker)이 켜져 있어야 실행됨\n\n데이터 출처(API 키 불필요): Open-Meteo 날씨 · ExchangeRate-API 환율 · Google 뉴스 RSS",
-        "height": 240,
+        "content": "## 준비 사항\n1. **OpenAI 모델** 노드에 OpenAI 크레덴셜 연결\n2. **Slack 브리핑 전송** 노드의 Channel에서 채널 선택 (그 채널에 Slack 앱(봇) 초대 필요)\n3. 오전 9시에 n8n(로컬 Docker)이 켜져 있어야 실행됨\n4. **키워드 검색 폼**: 키워드를 넣으면 최근 1일 뉴스로 브리핑. 에디터에서는 Execute workflow에서 이 시작점을 골라 테스트, 활성화 후에는 `http://localhost:50990/form/brief-news-keyword`에서 사용\n\n데이터 출처(API 키 불필요): Open-Meteo 날씨 · ExchangeRate-API 환율 · Google 뉴스 RSS",
+        "height": 300,
         "width": 620
       },
       "id": "72061701-4edf-481a-a458-79ad256736cb",
@@ -83,7 +83,7 @@
       "maxTries": 3,
       "waitBetweenTries": 5000,
       "position": [
-        560,
+        864,
         304
       ],
       "notes": "Why HTTP: 키 없이 쓰는 Open-Meteo용 노드가 없음 (OpenWeatherMap 노드는 API 키 필요)"
@@ -101,25 +101,26 @@
       "maxTries": 3,
       "waitBetweenTries": 5000,
       "position": [
-        864,
+        1168,
         304
       ],
       "notes": "Why HTTP: 환율 조회용 n8n 노드가 없음 (open.er-api.com, 키 불필요, 하루 1회 갱신)"
     },
     {
       "parameters": {
-        "url": "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko",
+        "url": "={{ $('검색 조건 정리').first().json.newsRssUrl }}",
         "options": {}
       },
       "id": "2351d5a1-8327-49bb-874b-b1124c74e1a8",
-      "name": "주요 뉴스 조회",
+      "name": "뉴스 조회",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.2,
+      "alwaysOutputData": true,
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000,
       "position": [
-        1152,
+        1456,
         304
       ]
     },
@@ -132,7 +133,7 @@
       "type": "n8n-nodes-base.limit",
       "typeVersion": 1,
       "position": [
-        1456,
+        1760,
         304
       ]
     },
@@ -149,18 +150,18 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        1760,
+        2064,
         304
       ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=오늘 날짜: {{ $now.setLocale('ko').toFormat('M월 d일 cccc') }}\n\n[서울 날씨 - Open-Meteo]\n{{ JSON.stringify($('서울 날씨 조회').first().json) }}\n\n[달러 환율 - ExchangeRate-API]\n1 USD = {{ (Math.round($('달러 환율 조회').first().json.rates.KRW * 100) / 100).toLocaleString('ko-KR') }} KRW (기준 시각: {{ DateTime.fromSeconds($('달러 환율 조회').first().json.time_last_update_unix).setZone('Asia/Seoul').toFormat('M월 d일 HH:mm') }} KST)\n\n[주요 뉴스 - Google 뉴스]\n{{ JSON.stringify($json.news) }}",
+        "text": "=오늘 날짜: {{ $now.setLocale('ko').toFormat('M월 d일 cccc') }}\n검색 키워드: {{ $('검색 조건 정리').first().json.keyword || '없음' }}\n\n[서울 날씨 - Open-Meteo]\n{{ JSON.stringify($('서울 날씨 조회').first().json) }}\n\n[달러 환율 - ExchangeRate-API]\n1 USD = {{ (Math.round($('달러 환율 조회').first().json.rates.KRW * 100) / 100).toLocaleString('ko-KR') }} KRW (기준 시각: {{ DateTime.fromSeconds($('달러 환율 조회').first().json.time_last_update_unix).setZone('Asia/Seoul').toFormat('M월 d일 HH:mm') }} KST)\n\n[뉴스 - Google 뉴스]\n{{ JSON.stringify($json.news) }}",
         "messages": {
           "messageValues": [
             {
-              "message": "너는 한국 직장인을 위한 아침 브리핑 작성자다. 사용자가 준 데이터만 사용해 Slack 채널에 올릴 한국어 브리핑을 쓴다.\n\n[출력 형식]\n- Slack mrkdwn만 쓴다: 굵게는 *텍스트*, 기울임은 _텍스트_, 링크는 <URL|텍스트>. 마크다운 제목(#), 표, 코드 블록은 쓰지 않는다\n- 아래 구성과 순서를 그대로 따르고, 인사말이나 맺음말은 넣지 않는다\n\n*🌅 (오늘 날짜) 아침 브리핑*\n\n*🌤️ 서울 날씨*\n현재 기온과 체감 기온, 오늘 최저·최고 기온, 하늘 상태, 강수 확률을 2줄 이내로\n\n*📰 주요 뉴스*\n• 뉴스 5건을 한 줄씩 요약하고, 줄 끝에 (언론사) <링크|원문>\n\n*💵 달러 환율*\n1달러 = N원 (기준 시각)\n\n_출처: Open-Meteo · ExchangeRate-API · Google 뉴스_\n\n[규칙]\n- 데이터에 없는 내용은 추측하지 않는다. 값이 없으면 \"정보 없음\"으로 쓴다\n- weather_code는 WMO 날씨 코드다: 0 맑음, 1 대체로 맑음, 2 구름 조금, 3 흐림, 45·48 안개, 51~57 이슬비, 61~67 비, 71~77 눈, 80~82 소나기, 85·86 눈 소나기, 95~99 뇌우\n- 뉴스는 title을 중심으로 contentSnippet의 관련 기사 제목을 참고해 핵심만 한 줄로 요약한다. title 끝의 \" - 언론사\"는 (언론사)로 옮긴다"
+              "message": "너는 한국 직장인을 위한 아침 브리핑 작성자다. 사용자가 준 데이터만 사용해 Slack 채널에 올릴 한국어 브리핑을 쓴다.\n\n[출력 형식]\n- Slack mrkdwn만 쓴다: 굵게는 *텍스트*, 기울임은 _텍스트_, 링크는 <URL|텍스트>. 마크다운 제목(#), 표, 코드 블록은 쓰지 않는다\n- 아래 구성과 순서를 그대로 따르고, 인사말이나 맺음말은 넣지 않는다\n\n*🌅 (오늘 날짜) 아침 브리핑*\n\n*🌤️ 서울 날씨*\n현재 기온과 체감 기온, 오늘 최저·최고 기온, 하늘 상태, 강수 확률을 2줄 이내로\n\n*📰 주요 뉴스*\n• 뉴스 5건을 한 줄씩 요약하고, 줄 끝에 (언론사) <링크|원문>\n\n*💵 달러 환율*\n1달러 = N원 (기준 시각)\n\n_출처: Open-Meteo · ExchangeRate-API · Google 뉴스_\n\n[규칙]\n- 데이터에 없는 내용은 추측하지 않는다. 값이 없으면 \"정보 없음\"으로 쓴다\n- weather_code는 WMO 날씨 코드다: 0 맑음, 1 대체로 맑음, 2 구름 조금, 3 흐림, 45·48 안개, 51~57 이슬비, 61~67 비, 71~77 눈, 80~82 소나기, 85·86 눈 소나기, 95~99 뇌우\n- 뉴스는 title을 중심으로 contentSnippet의 관련 기사 제목을 참고해 핵심만 한 줄로 요약한다. title 끝의 \" - 언론사\"는 (언론사)로 옮긴다\n- 검색 키워드가 '없음'이 아니면 제목을 *🔎 (오늘 날짜) '(검색 키워드)' 뉴스 브리핑*으로, 뉴스 섹션 제목을 *📰 '(검색 키워드)' 관련 뉴스*로 바꾼다. 나머지 구성과 순서는 같다"
             }
           ]
         },
@@ -174,7 +175,7 @@
       "maxTries": 2,
       "waitBetweenTries": 5000,
       "position": [
-        2064,
+        2368,
         304
       ]
     },
@@ -194,7 +195,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        2064,
+        2368,
         512
       ],
       "credentials": {
@@ -226,7 +227,7 @@
       "maxTries": 3,
       "waitBetweenTries": 5000,
       "position": [
-        2352,
+        2656,
         304
       ],
       "credentials": {
@@ -235,20 +236,74 @@
           "name": "Slack account 2"
         }
       }
+    },
+    {
+      "parameters": {
+        "formTitle": "키워드 뉴스 브리핑",
+        "formDescription": "키워드를 입력하면 Google 뉴스에서 최근 1일 기사를 찾아 서울 날씨·달러 환율과 함께 Slack으로 브리핑합니다.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "키워드",
+              "fieldName": "keyword",
+              "placeholder": "예: 반도체",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "브리핑 받기",
+          "path": "brief-news-keyword",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "브리핑을 만들고 있습니다. 잠시 후 Slack 채널을 확인하세요."
+            }
+          }
+        }
+      },
+      "id": "bbbd4b4c-cfd3-4720-adda-b1d0a5f6168c",
+      "name": "키워드 검색 폼",
+      "webhookId": "d421d24b-7058-4935-987d-052a0c806e2a",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        256,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "620a490b-8e7c-4f04-951d-cdb13f8990ac",
+              "name": "keyword",
+              "value": "={{ ($json.keyword || '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "6984434e-dd49-4037-8328-74c3e62d5f50",
+              "name": "newsRssUrl",
+              "value": "={{ ($json.keyword || '').trim() ? 'https://news.google.com/rss/search?q=' + encodeURIComponent($json.keyword.trim() + ' when:1d') + '&hl=ko&gl=KR&ceid=KR:ko' : 'https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eb7194b6-f8a4-4f0b-98b8-e2e24e8aad99",
+      "name": "검색 조건 정리",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        304
+      ],
+      "notes": "두 시작점의 입력을 같은 형태로 맞춤. 오전 9시 실행은 keyword가 비어 주요 뉴스를, 폼 실행은 키워드 검색(최근 1일) 결과를 씀"
     }
   ],
   "connections": {
-    "매일 오전 9시": {
-      "main": [
-        [
-          {
-            "node": "서울 날씨 조회",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "서울 날씨 조회": {
       "main": [
         [
@@ -264,14 +319,14 @@
       "main": [
         [
           {
-            "node": "주요 뉴스 조회",
+            "node": "뉴스 조회",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "주요 뉴스 조회": {
+    "뉴스 조회": {
       "main": [
         [
           {
@@ -325,6 +380,39 @@
           }
         ]
       ]
+    },
+    "매일 오전 9시": {
+      "main": [
+        [
+          {
+            "node": "검색 조건 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "키워드 검색 폼": {
+      "main": [
+        [
+          {
+            "node": "검색 조건 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "검색 조건 정리": {
+      "main": [
+        [
+          {
+            "node": "서울 날씨 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -332,16 +420,25 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "staticData": null,
+  "staticData": {
+    "node:매일 오전 9시": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
   "meta": {
     "templateCredsSetupCompleted": true
   },
   "nodeGroups": [],
   "pinData": {},
-  "versionId": "54f937e9-0699-4014-98ed-84b9999fbcc6",
+  "versionId": "5c70fa14-0185-4d10-b508-c971079494fb",
   "activeVersionId": null,
-  "versionCounter": 9,
-  "triggerCount": 0,
+  "versionCounter": 13,
+  "triggerCount": 2,
   "sourceWorkflowId": null,
   "tags": [],
   "versionMetadata": {
