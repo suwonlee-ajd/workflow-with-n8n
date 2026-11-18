@@ -1,0 +1,774 @@
+{
+  "updatedAt": "2026-11-11T09:55:50.451Z",
+  "createdAt": "2026-11-11T05:36:06.061Z",
+  "id": "YTFIeq5WdROwZQ4w",
+  "name": "주식: 국내 종목 선별",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "61025507-b9d6-4b3c-a691-150fb308fb1b",
+      "name": "준비 사항",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -340
+      ],
+      "parameters": {
+        "width": 1100,
+        "height": 500,
+        "content": "## 주식: 국내 종목 선별\n평일 오전 8시 10분(또는 폼 제출)에 KOSPI·KOSDAQ 보통주 중 거래대금 상위 150종목을 골라, 최근 60거래일 시세로 상승 추세·거래량 증가 종목을 뽑아 Slack으로 보냅니다.\n\n**흐름**: 최근 5평일 시세로 기준일·후보 결정 → 과거 약 100일 시세 수집 → 시장 지표 수집 → 공통 처리(지표 계산·AI 정리·Slack·기록)\n\n**준비 사항**\n1. KRX 크리덴셜(Header Auth, Name `AUTH_KEY`)을 아래 KRX 노드에 연결함 (2026-11-11)\n   - 이 워크플로우: 유가증권·코스닥 종목정보 조회\n   - 주식: 일별 시세 가져오기 / 주식: 시장 지표 수집의 KRX 노드\n2. KRX API 6개 이용 승인됨. **사용기간 2026-12-10까지**라서 만료 전에 KRX 사이트 이용현황에서 갱신\n3. Slack 채널 `C0BDULL98NL` (바꾸려면 주식: 종목 선별 공통의 **Slack 전송** 노드에서 변경)\n\n**조건 바꾸기**: '실행 설정' 노드의 값 (선정 개수 topN, 거래량 배수 minVolRatio, RSI 상한 maxRsi, 후보 수 candidateCount 등)\n**참고**: KRX는 전 영업일 데이터를 다음 날 08시부터 제공해서 8시 10분에 실행합니다. 사용한 기준일은 Slack 메시지에 표시됩니다."
+      }
+    },
+    {
+      "id": "902a504f-e4dd-40b1-88ba-61afeb6ed514",
+      "name": "평일 오전 8시 10분",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "10 8 * * 1-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c3536201-6194-401e-a444-f06883cd7ff0",
+      "name": "수동 실행 폼",
+      "webhookId": "6809f86f-47b1-4ee7-b14f-71d3c7e7948f",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        420
+      ],
+      "parameters": {
+        "formTitle": "국내 종목 선별",
+        "formDescription": "KOSPI·KOSDAQ에서 상승 추세이면서 거래량이 늘어난 종목을 골라 Slack으로 보냅니다.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "선정 개수",
+              "fieldName": "topN",
+              "fieldType": "number",
+              "placeholder": "10",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "선별 시작",
+          "path": "stock-screener-kr",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "선별을 시작했습니다. 몇 분 뒤 Slack 채널을 확인하세요."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "d5b84975-1750-4416-82da-461b28f26ee6",
+      "name": "실행 설정",
+      "notes": "선별 조건과 데이터 범위를 바꾸는 곳",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        240,
+        320
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "47c9c9b1-554e-4676-8b33-14a2c4199fdf",
+              "name": "market",
+              "value": "KR",
+              "type": "string"
+            },
+            {
+              "id": "d88cc8c6-054e-45d0-908b-b21301e2c9da",
+              "name": "marketLabel",
+              "value": "국내",
+              "type": "string"
+            },
+            {
+              "id": "a67a1a61-ede9-4c52-91ba-a36970ca85a6",
+              "name": "currency",
+              "value": "원",
+              "type": "string"
+            },
+            {
+              "id": "0fdf1b07-927d-479d-9947-efec79fad832",
+              "name": "topN",
+              "value": "={{ Number($json.topN) > 0 ? Math.min(Math.round(Number($json.topN)), 30) : 10 }}",
+              "type": "number"
+            },
+            {
+              "id": "a83274ba-0b7e-4c26-988b-4d92e049c575",
+              "name": "minVolRatio",
+              "value": 1.5,
+              "type": "number"
+            },
+            {
+              "id": "5796a3ac-76dc-4e10-aeba-2828c9b86003",
+              "name": "maxRsi",
+              "value": 70,
+              "type": "number"
+            },
+            {
+              "id": "04fe4fa9-f594-4c6d-8b4a-0a55ebb587d2",
+              "name": "vixCaution",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "5556be70-a790-4d40-b99a-6827333e8b4f",
+              "name": "phase1MinValue",
+              "value": 5000000000,
+              "type": "number"
+            },
+            {
+              "id": "ca76d130-ed8e-408d-bfaf-bdb697705639",
+              "name": "minPrice",
+              "value": 1000,
+              "type": "number"
+            },
+            {
+              "id": "1edc26a9-00f9-4f1f-8d47-cc5083b9a79b",
+              "name": "candidateCount",
+              "value": 150,
+              "type": "number"
+            },
+            {
+              "id": "e0d04a7f-af07-4fe4-9f5e-4d6516c84438",
+              "name": "historyCalendarDays",
+              "value": 100,
+              "type": "number"
+            },
+            {
+              "id": "c7bb2536-f970-4a38-83f3-40b66bc7d7be",
+              "name": "newsHl",
+              "value": "ko",
+              "type": "string"
+            },
+            {
+              "id": "48e0dbb6-e47a-412e-a55c-213177e265c7",
+              "name": "newsGl",
+              "value": "KR",
+              "type": "string"
+            },
+            {
+              "id": "fb25d8e3-56b0-42dc-a7bb-b2441e1eccca",
+              "name": "newsCeid",
+              "value": "KR:ko",
+              "type": "string"
+            },
+            {
+              "id": "b018a8a9-9938-4517-be09-d75c85967bda",
+              "name": "recentDates",
+              "value": "={{ Array.from({ length: 10 }, (_, i) => $now.minus({ days: i })).filter(d => d.weekday <= 5).slice(0, 5).map(d => d.toFormat('yyyy-MM-dd')) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "3f306676-4b90-431a-b2a8-7a18d6a9850e",
+      "name": "최근 거래일 나누기",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        320
+      ],
+      "parameters": {
+        "fieldToSplitOut": "recentDates",
+        "include": "noOtherFields",
+        "options": {
+          "destinationFieldName": "date"
+        }
+      }
+    },
+    {
+      "id": "4e5a8140-1008-493d-bfd3-9aa94e6367f8",
+      "name": "최근 시세 가져오기",
+      "notes": "날짜마다 한 번씩 호출. 거래대금 50억 이상만 받음",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        680,
+        320
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LPAELgFq1ioJot3T",
+          "mode": "list",
+          "cachedResultName": "주식: 일별 시세 가져오기",
+          "cachedResultUrl": "/workflow/LPAELgFq1ioJot3T"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.date }}",
+            "codes": "={{ [] }}",
+            "minValue": "={{ $('실행 설정').first().json.phase1MinValue }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "codes",
+              "displayName": "codes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "minValue",
+              "displayName": "minValue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "b94c18e4-5485-4907-8b78-bd2c16503bf9",
+      "name": "기준일 정하기",
+      "notes": "시세가 있는 가장 최근 날짜. 종목정보 조회 2개가 함께 씀",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "executeOnce": true,
+      "position": [
+        900,
+        320
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b3158827-c1a2-409b-bda5-0d668507f63f",
+              "name": "basDd",
+              "value": "={{ ($('최근 시세 가져오기').all().map(i => i.json).filter(d => (d.rows || []).length > 0).map(d => d.date).sort().pop() || '').split('-').join('') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f22d33a3-3a0b-4498-ac59-38b51126f62b",
+      "name": "유가증권 종목정보 조회",
+      "notes": "Why HTTP: KRX Open API용 노드가 없음. 실패하면 후보 고르기가 종목코드·이름 규칙으로 대신함",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1120,
+        320
+      ],
+      "parameters": {
+        "url": "https://data-dbg.krx.co.kr/svc/apis/sto/stk_isu_base_info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "basDd",
+              "value": "={{ $('기준일 정하기').first().json.basDd }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kQZV2SLqz9OEQTWq",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "id": "e58671b0-fede-4dc9-b5b8-6aa0554c3902",
+      "name": "코스닥 종목정보 조회",
+      "notes": "Why HTTP: KRX Open API용 노드가 없음. 실패하면 후보 고르기가 종목코드·이름 규칙으로 대신함",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1340,
+        320
+      ],
+      "parameters": {
+        "url": "https://data-dbg.krx.co.kr/svc/apis/sto/ksq_isu_base_info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "basDd",
+              "value": "={{ $('기준일 정하기').first().json.basDd }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kQZV2SLqz9OEQTWq",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "id": "18b5f003-46c9-4e80-84f3-e8d78d6d215a",
+      "name": "후보 고르기",
+      "notesInFlow": true,
+      "notes": "Why Code: 날짜 5개 응답에서 최신 거래일을 찾고, 종목기본정보와 대조해 보통주만 남기고, 과거 평일 목록을 만드는 일을 기본 노드로 하면 Merge·Filter·Sort·Limit·날짜 생성까지 5개 이상 필요",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        320
+      ],
+      "parameters": {
+        "jsCode": "const cfg = $('실행 설정').first().json;\nconst days = $('최근 시세 가져오기').all()\n  .map(item => item.json)\n  .filter(day => Array.isArray(day.rows) && day.rows.length > 0)\n  .sort((a, b) => a.date.localeCompare(b.date));\nif (!days.length) {\n  throw new Error('최근 5거래일의 국내 시세가 없습니다. KRX 크리덴셜과 서비스 승인 상태를 확인하세요.');\n}\nconst latest = days[days.length - 1];\n\n// 보통주 목록: KRX 종목기본정보. 못 받으면 종목코드·이름 규칙으로 대신함\nconst shortCode = (raw) => {\n  const code = String(raw || '').trim();\n  return /^KR[0-9A-Z]{10}$/.test(code) ? code.slice(3, 9) : code;\n};\nconst common = new Set();\nfor (const nodeName of ['유가증권 종목정보 조회', '코스닥 종목정보 조회']) {\n  const body = $(nodeName).first().json || {};\n  for (const r of Array.isArray(body.OutBlock_1) ? body.OutBlock_1 : []) {\n    const kind = String(r.KIND_STKCERT_TP_NM || '');\n    const section = String(r.SECT_TP_NM || '');\n    const name = String(r.ISU_ABBRV || r.ISU_NM || '');\n    if (kind && !kind.includes('보통주')) continue;\n    if (/SPAC|스팩|관리|투자주의|정리매매/.test(section) || /스팩/.test(name)) continue;\n    common.add(shortCode(r.ISU_SRT_CD || r.ISU_CD));\n  }\n}\nconst filterSource = common.size ? 'KRX 종목기본정보' : '종목코드·이름 규칙';\nconst isCommon = (r) => common.size\n  ? common.has(r.code)\n  : /0$/.test(r.code) && !/스팩|우$|우B$|우C$|[0-9]우/.test(r.name);\n\nconst pool = latest.rows.filter(r => isCommon(r) && r.close >= cfg.minPrice);\npool.sort((a, b) => b.value - a.value);\nconst candidates = pool.slice(0, cfg.candidateCount).map(r => ({ code: r.code, name: r.name, board: r.board, value: r.value }));\n\n// 이동평균 60일을 계산할 만큼 과거 평일 목록을 만듦 (휴장일은 빈 응답)\nconst historyDates = [];\nconst end = DateTime.fromISO(latest.date);\nconst start = end.minus({ days: cfg.historyCalendarDays });\nfor (let d = end; d >= start; d = d.minus({ days: 1 })) {\n  if (d.weekday <= 5) historyDates.push(d.toFormat('yyyy-MM-dd'));\n}\n\nreturn [{ json: { baseDate: latest.date, candidates, historyDates, filterSource, poolSize: pool.length } }];\n"
+      }
+    },
+    {
+      "id": "f1902957-d92a-4480-bab8-de0438e2f2fc",
+      "name": "과거 날짜 나누기",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        320
+      ],
+      "parameters": {
+        "fieldToSplitOut": "historyDates",
+        "include": "noOtherFields",
+        "options": {
+          "destinationFieldName": "date"
+        }
+      }
+    },
+    {
+      "id": "512d8a91-c99d-40ce-a4ec-5f2ff68ceeae",
+      "name": "과거 시세 가져오기",
+      "notes": "날짜마다 한 번씩 호출. 후보 종목만 받음",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2000,
+        320
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LPAELgFq1ioJot3T",
+          "mode": "list",
+          "cachedResultName": "주식: 일별 시세 가져오기",
+          "cachedResultUrl": "/workflow/LPAELgFq1ioJot3T"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.date }}",
+            "codes": "={{ $('후보 고르기').first().json.candidates.map(c => c.code) }}",
+            "minValue": "={{ 0 }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "codes",
+              "displayName": "codes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "minValue",
+              "displayName": "minValue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "af625e1b-2e29-4c90-88f8-6d1a20ff038b",
+      "name": "시장 지표 가져오기",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "executeOnce": true,
+      "position": [
+        2220,
+        320
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "dWiOs3EAn3vmSo9g",
+          "mode": "list",
+          "cachedResultName": "주식: 시장 지표 수집",
+          "cachedResultUrl": "/workflow/dWiOs3EAn3vmSo9g"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "8a9732b7-3f1b-499a-a4bb-9c2cd90cc46f",
+      "name": "종목 선별·전송",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "executeOnce": true,
+      "position": [
+        2440,
+        320
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "FzOCm40kL4jHbPOg",
+          "mode": "list",
+          "cachedResultName": "주식: 종목 선별 공통",
+          "cachedResultUrl": "/workflow/FzOCm40kL4jHbPOg"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "market": "={{ $('실행 설정').first().json.market }}",
+            "marketLabel": "={{ $('실행 설정').first().json.marketLabel }}",
+            "baseDate": "={{ $('후보 고르기').first().json.baseDate }}",
+            "candidates": "={{ $('후보 고르기').first().json.candidates }}",
+            "days": "={{ $('과거 시세 가져오기').all().map(i => i.json) }}",
+            "indicators": "={{ $('시장 지표 가져오기').first().json }}",
+            "settings": "={{ $('실행 설정').first().json }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "market",
+              "displayName": "market",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "marketLabel",
+              "displayName": "marketLabel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "baseDate",
+              "displayName": "baseDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "candidates",
+              "displayName": "candidates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "days",
+              "displayName": "days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "indicators",
+              "displayName": "indicators",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            },
+            {
+              "id": "settings",
+              "displayName": "settings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "평일 오전 8시 10분": {
+      "main": [
+        [
+          {
+            "node": "실행 설정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "수동 실행 폼": {
+      "main": [
+        [
+          {
+            "node": "실행 설정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "실행 설정": {
+      "main": [
+        [
+          {
+            "node": "최근 거래일 나누기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "최근 거래일 나누기": {
+      "main": [
+        [
+          {
+            "node": "최근 시세 가져오기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "최근 시세 가져오기": {
+      "main": [
+        [
+          {
+            "node": "기준일 정하기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기준일 정하기": {
+      "main": [
+        [
+          {
+            "node": "유가증권 종목정보 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "유가증권 종목정보 조회": {
+      "main": [
+        [
+          {
+            "node": "코스닥 종목정보 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "코스닥 종목정보 조회": {
+      "main": [
+        [
+          {
+            "node": "후보 고르기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "후보 고르기": {
+      "main": [
+        [
+          {
+            "node": "과거 날짜 나누기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "과거 날짜 나누기": {
+      "main": [
+        [
+          {
+            "node": "과거 시세 가져오기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "과거 시세 가져오기": {
+      "main": [
+        [
+          {
+            "node": "시장 지표 가져오기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "시장 지표 가져오기": {
+      "main": [
+        [
+          {
+            "node": "종목 선별·전송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:평일 오전 8시 10분": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "e0f7755b-6512-4a59-b751-86d1417d10e8",
+  "activeVersionId": null,
+  "versionCounter": 5,
+  "triggerCount": 2,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

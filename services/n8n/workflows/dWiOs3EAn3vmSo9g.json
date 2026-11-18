@@ -1,0 +1,589 @@
+{
+  "updatedAt": "2026-11-11T09:49:00.482Z",
+  "createdAt": "2026-11-11T05:31:15.067Z",
+  "id": "dWiOs3EAn3vmSo9g",
+  "name": "주식: 시장 지표 수집",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "e25f7a11-ca9d-4c6d-ab18-7adeccee5e39",
+      "name": "설명",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -200
+      ],
+      "parameters": {
+        "width": 900,
+        "height": 400,
+        "content": "## 주식: 시장 지표 수집 (서브 워크플로우)\n환율·국내 지수·미국 지수·금리·VIX를 모아 최신값, 전일 대비, 20일 평균 대비를 돌려줍니다. 국내 종목 선별 워크플로우가 부르고, 에디터에서는 **Execute workflow**로 단독 실행해 결과를 볼 수 있습니다.\n\n**출력**: fx(환율 4종), kr(KOSPI·KOSDAQ), us(S&P500·NASDAQ·10년물 금리·VIX), summaryLines·summaryText(요약 문장), errors(실패한 지표)\n\n**데이터 출처**: Frankfurter(유럽중앙은행 기준 환율, 키 없음) · FRED(키 없음) · KRX Open API(키 필요)\n- **KOSPI·KOSDAQ 지수 조회**는 KRX 크리덴셜(Header Auth, Name `AUTH_KEY`)을 씁니다. KRX API 사용기간(현재 2026-12-10까지)이 끝나기 전에 KRX 사이트 이용현황에서 갱신하세요\n- 지표 하나가 실패해도 나머지는 그대로 돌려주고, 실패 내용은 errors에 남깁니다\n- 미국 금리·VIX는 하루 늦게 들어옵니다\n- 고친 뒤에는 다시 게시(Publish)해야 다른 워크플로우에서 부를 때 반영됩니다"
+      }
+    },
+    {
+      "id": "322607b7-5ce4-4c65-8a38-0a34aecd380b",
+      "name": "에디터 테스트용 실행",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "ef1e3b19-1b65-43a2-8aee-3f600fa57208",
+      "name": "다른 워크플로우에서 호출",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        420
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "41a22530-f554-4fbf-923a-4a4ef270449c",
+      "name": "조회 기간",
+      "notes": "넘겨받는 값은 쓰지 않고, 몇 개가 와도 한 번만 실행",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "executeOnce": true,
+      "position": [
+        240,
+        320
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "79790375-67a2-4025-a77d-c1febf1f9d58",
+              "name": "fromDate",
+              "value": "={{ $now.minus({ days: 45 }).toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "b0b9323b-303d-4e73-ac07-f71f20cbd4b9",
+              "name": "krDates",
+              "value": "={{ Array.from({ length: 36 }, (_, i) => $now.minus({ days: i })).filter(d => d.weekday <= 5).map(d => d.toFormat('yyyyMMdd')) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fcef1fc8-c024-4b1e-940b-7ef349115afb",
+      "name": "국내 조회일 나누기",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        320
+      ],
+      "parameters": {
+        "fieldToSplitOut": "krDates",
+        "include": "noOtherFields",
+        "options": {
+          "destinationFieldName": "basDd"
+        }
+      }
+    },
+    {
+      "id": "0f919052-e300-4816-bb76-2df2e73f7186",
+      "name": "KOSPI 지수 조회",
+      "notes": "Why HTTP: KRX Open API용 노드가 없음",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "position": [
+        680,
+        320
+      ],
+      "parameters": {
+        "url": "https://data-dbg.krx.co.kr/svc/apis/idx/kospi_dd_trd",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "basDd",
+              "value": "={{ $json.basDd }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kQZV2SLqz9OEQTWq",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "id": "d44a8404-cd43-4aaa-b403-f98916474701",
+      "name": "KOSDAQ 지수 조회",
+      "notes": "Why HTTP: KRX Open API용 노드가 없음",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "position": [
+        900,
+        320
+      ],
+      "parameters": {
+        "url": "https://data-dbg.krx.co.kr/svc/apis/idx/kosdaq_dd_trd",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "basDd",
+              "value": "={{ $('국내 조회일 나누기').item.json.basDd }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kQZV2SLqz9OEQTWq",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "id": "4658f57f-d0d3-41e5-b3e6-879d08f51860",
+      "name": "환율 조회",
+      "notes": "Why HTTP: Frankfurter(키 없는 환율 API)용 노드가 없음",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1120,
+        320
+      ],
+      "parameters": {
+        "url": "=https://api.frankfurter.dev/v1/{{ $('조회 기간').first().json.fromDate }}..",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "base",
+              "value": "USD"
+            },
+            {
+              "name": "symbols",
+              "value": "KRW,JPY,CNY,EUR"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f0626232-258a-4b2a-ad5b-8731a56f21e5",
+      "name": "S&P500 조회",
+      "notes": "Why HTTP: FRED용 노드가 없음 (CSV 다운로드는 키 불필요)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1340,
+        320
+      ],
+      "parameters": {
+        "url": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "SP500"
+            },
+            {
+              "name": "cosd",
+              "value": "={{ $('조회 기간').first().json.fromDate }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "97979621-58b3-4ad9-a307-dd5d1d5f79be",
+      "name": "NASDAQ 조회",
+      "notes": "Why HTTP: FRED용 노드가 없음 (CSV 다운로드는 키 불필요)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1560,
+        320
+      ],
+      "parameters": {
+        "url": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "NASDAQCOM"
+            },
+            {
+              "name": "cosd",
+              "value": "={{ $('조회 기간').first().json.fromDate }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "c5bca319-28ae-4adc-aa41-c61d04acaf40",
+      "name": "미국 10년물 금리 조회",
+      "notes": "Why HTTP: FRED용 노드가 없음 (CSV 다운로드는 키 불필요)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "position": [
+        1780,
+        320
+      ],
+      "parameters": {
+        "url": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "DGS10"
+            },
+            {
+              "name": "cosd",
+              "value": "={{ $('조회 기간').first().json.fromDate }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fc4d0c4f-b25c-474d-9ffb-c47237a6462a",
+      "name": "VIX 조회",
+      "notes": "Why HTTP: FRED용 노드가 없음 (CSV 다운로드는 키 불필요)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "position": [
+        2000,
+        320
+      ],
+      "parameters": {
+        "url": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "VIXCLS"
+            },
+            {
+              "name": "cosd",
+              "value": "={{ $('조회 기간').first().json.fromDate }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "054291ea-a2cb-4694-8e9e-ebb7ea44de0b",
+      "name": "지표 정리",
+      "notesInFlow": true,
+      "notes": "Why Code: Summarize·Sort·Filter로는 지표 10개의 날짜 정렬, 휴장일 건너뛰기, 전일 대비, 20일 평균을 계산하려면 지표마다 노드 묶음이 필요함",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        320
+      ],
+      "parameters": {
+        "jsCode": "const errors = [];\nconst round = (x, d = 2) => (x === null || x === undefined || !Number.isFinite(x)) ? null : Math.round(x * 10 ** d) / 10 ** d;\nconst toNum = (v) => {\n  if (v === null || v === undefined || String(v).trim() === '') return null;\n  const n = Number(String(v).replace(/,/g, '').trim());\n  return Number.isFinite(n) ? n : null;\n};\nconst errMsg = (json) => {\n  const e = json && json.error;\n  if (!e) return null;\n  return typeof e === 'string' ? e : (e.message || e.description || JSON.stringify(e));\n};\n\n// 날짜순으로 정렬해 최신값, 전일 대비, 20일 평균 대비를 계산\nfunction summarize(points) {\n  const pts = points\n    .filter(p => p && p.date && Number.isFinite(p.value))\n    .sort((a, b) => a.date.localeCompare(b.date));\n  if (!pts.length) return null;\n  const last = pts[pts.length - 1];\n  const prev = pts.length > 1 ? pts[pts.length - 2] : null;\n  const recent = pts.slice(-20);\n  const ma20 = recent.length === 20 ? recent.reduce((s, p) => s + p.value, 0) / 20 : null;\n  return {\n    value: round(last.value),\n    date: last.date,\n    change: prev ? round(last.value - prev.value) : null,\n    changePct: prev ? round((last.value / prev.value - 1) * 100) : null,\n    ma20: round(ma20),\n    vsMa20Pct: ma20 ? round((last.value / ma20 - 1) * 100) : null,\n  };\n}\n\n// 1) 환율: Frankfurter(유럽중앙은행 기준, 달러 기준)를 원화 기준으로 환산\nconst fx = { usdKrw: null, jpyKrw100: null, cnyKrw: null, eurKrw: null };\nconst fxJson = $('환율 조회').first().json;\nif (errMsg(fxJson)) {\n  errors.push(`환율 조회: ${errMsg(fxJson)}`);\n} else {\n  const series = { usdKrw: [], jpyKrw100: [], cnyKrw: [], eurKrw: [] };\n  for (const [date, r] of Object.entries(fxJson.rates || {})) {\n    if (!r || !r.KRW) continue;\n    series.usdKrw.push({ date, value: r.KRW });\n    if (r.JPY) series.jpyKrw100.push({ date, value: (r.KRW / r.JPY) * 100 });\n    if (r.CNY) series.cnyKrw.push({ date, value: r.KRW / r.CNY });\n    if (r.EUR) series.eurKrw.push({ date, value: r.KRW / r.EUR });\n  }\n  for (const key of Object.keys(series)) fx[key] = summarize(series[key]);\n  if (!fx.usdKrw) errors.push('환율 조회: 데이터 없음');\n}\n\n// 2) 미국 지표: FRED CSV(observation_date,값). 휴장일은 빈칸이나 '.'\nfunction parseFred(nodeName) {\n  const json = $(nodeName).first().json;\n  if (errMsg(json)) {\n    errors.push(`${nodeName}: ${errMsg(json)}`);\n    return null;\n  }\n  const lines = String(json.data || '').trim().split(String.fromCharCode(10)).slice(1);\n  const points = lines.map((line) => {\n    const [date, raw] = line.trim().split(',');\n    return { date: (date || '').trim(), value: raw && raw.trim() !== '.' ? toNum(raw) : null };\n  });\n  const result = summarize(points);\n  if (!result) errors.push(`${nodeName}: 데이터 없음`);\n  return result;\n}\nconst us = {\n  sp500: parseFred('S&P500 조회'),\n  nasdaq: parseFred('NASDAQ 조회'),\n  us10y: parseFred('미국 10년물 금리 조회'),\n  vix: parseFred('VIX 조회'),\n};\n\n// 3) 국내 지수: KRX 날짜별 응답에서 대표 지수 행만 사용\nfunction parseKrx(nodeName, indexName) {\n  const points = [];\n  let firstError = null;\n  for (const item of $(nodeName).all()) {\n    const json = item.json || {};\n    const error = errMsg(json) || (json.respCode && String(json.respCode) !== '200' ? `${json.respCode} ${json.respMsg || ''}`.trim() : null);\n    if (error) {\n      firstError = firstError || error;\n      continue;\n    }\n    const rows = Array.isArray(json.OutBlock_1) ? json.OutBlock_1 : [];\n    const clean = (s) => String(s || '').split(' ').join('');\n    const row = rows.find(r => clean(r.IDX_NM) === indexName) || rows.find(r => clean(r.IDX_NM) === `${indexName}지수`);\n    if (!row) continue;\n    const d = String(row.BAS_DD || '');\n    points.push({ date: `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`, value: toNum(row.CLSPRC_IDX) });\n  }\n  const result = summarize(points);\n  if (!result) errors.push(`${nodeName}: ${firstError || `'${indexName}' 데이터 없음`}`);\n  return result;\n}\nconst kr = {\n  kospi: parseKrx('KOSPI 지수 조회', '코스피'),\n  kosdaq: parseKrx('KOSDAQ 지수 조회', '코스닥'),\n};\n\n// 4) 사람이 읽는 요약 줄 (AI 프롬프트·브리핑용)\nconst fmt = (x) => (x === null || x === undefined) ? '-' : x.toLocaleString('en-US', { maximumFractionDigits: 2 });\nconst signed = (x, unit) => (x === null || x === undefined) ? '-' : `${x > 0 ? '+' : ''}${fmt(x)}${unit}`;\nconst monthDay = (date) => date ? `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}` : '';\nconst line = (label, s, unit = '', pointChange = false) => {\n  if (!s) return `${label}: 정보 없음`;\n  const change = pointChange ? signed(s.change, '%p') : signed(s.changePct, '%');\n  const ma = s.ma20 === null ? '' : (pointChange ? `, 20일 평균 ${fmt(s.ma20)}${unit}` : `, 20일 평균 대비 ${signed(s.vsMa20Pct, '%')}`);\n  return `${label}: ${fmt(s.value)}${unit} (전일 대비 ${change}${ma}) · ${monthDay(s.date)}`;\n};\nconst summaryLines = [\n  line('원/달러', fx.usdKrw, '원'),\n  line('원/100엔', fx.jpyKrw100, '원'),\n  line('원/위안', fx.cnyKrw, '원'),\n  line('원/유로', fx.eurKrw, '원'),\n  line('KOSPI', kr.kospi),\n  line('KOSDAQ', kr.kosdaq),\n  line('S&P500', us.sp500),\n  line('NASDAQ', us.nasdaq),\n  line('미국 10년물 금리', us.us10y, '%', true),\n  line('VIX', us.vix),\n];\n\nconst summaryText = summaryLines.join(`\n`);\n\nreturn [{ json: { fx, kr, us, summaryLines, summaryText, errors, asOf: $now.toISO() } }];\n"
+      }
+    },
+    {
+      "id": "f55c9164-f7ae-4c9b-b003-92ec9fdafb0d",
+      "name": "결과 반환",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2440,
+        320
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d5d4b5c-5a51-4946-b5d7-f813ca1dc115",
+              "name": "fx",
+              "value": "={{ $json.fx }}",
+              "type": "object"
+            },
+            {
+              "id": "825c3ead-0f03-4d56-a053-118351c8f761",
+              "name": "kr",
+              "value": "={{ $json.kr }}",
+              "type": "object"
+            },
+            {
+              "id": "5d92d2a3-903d-4b20-864e-d8383a86de42",
+              "name": "us",
+              "value": "={{ $json.us }}",
+              "type": "object"
+            },
+            {
+              "id": "f7fa70c0-3f11-486c-b696-a5afe89f8b4e",
+              "name": "summaryLines",
+              "value": "={{ $json.summaryLines }}",
+              "type": "array"
+            },
+            {
+              "id": "c7e37a0a-f241-41b4-a32b-f5dac7d701d4",
+              "name": "summaryText",
+              "value": "={{ $json.summaryText }}",
+              "type": "string"
+            },
+            {
+              "id": "31ae4530-9660-414a-93c2-0bb256bea772",
+              "name": "errors",
+              "value": "={{ $json.errors }}",
+              "type": "array"
+            },
+            {
+              "id": "c9440273-c755-40c0-95ee-d9b363724bd9",
+              "name": "asOf",
+              "value": "={{ $json.asOf }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "에디터 테스트용 실행": {
+      "main": [
+        [
+          {
+            "node": "조회 기간",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "다른 워크플로우에서 호출": {
+      "main": [
+        [
+          {
+            "node": "조회 기간",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "조회 기간": {
+      "main": [
+        [
+          {
+            "node": "국내 조회일 나누기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "국내 조회일 나누기": {
+      "main": [
+        [
+          {
+            "node": "KOSPI 지수 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KOSPI 지수 조회": {
+      "main": [
+        [
+          {
+            "node": "KOSDAQ 지수 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KOSDAQ 지수 조회": {
+      "main": [
+        [
+          {
+            "node": "환율 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "환율 조회": {
+      "main": [
+        [
+          {
+            "node": "S&P500 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S&P500 조회": {
+      "main": [
+        [
+          {
+            "node": "NASDAQ 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NASDAQ 조회": {
+      "main": [
+        [
+          {
+            "node": "미국 10년물 금리 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "미국 10년물 금리 조회": {
+      "main": [
+        [
+          {
+            "node": "VIX 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VIX 조회": {
+      "main": [
+        [
+          {
+            "node": "지표 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "지표 정리": {
+      "main": [
+        [
+          {
+            "node": "결과 반환",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "4f3a1047-d9d9-4dc0-ac26-a4850a3d12fe",
+  "activeVersionId": "4f3a1047-d9d9-4dc0-ac26-a4850a3d12fe",
+  "versionCounter": 3,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

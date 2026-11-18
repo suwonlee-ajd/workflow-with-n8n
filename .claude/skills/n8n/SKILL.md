@@ -12,10 +12,10 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 
 | 요청 | 읽을 파일 |
 |------|-----------|
-| 생성/수정 | [references/workflow-builder.md](references/workflow-builder.md) |
+| 생성/수정/이름 정리 | [references/workflow-builder.md](references/workflow-builder.md) |
 | 에러 분석 | [references/ops-manager.md](references/ops-manager.md) |
 | 사용법 설명/교육 | [references/teaching-guide.md](references/teaching-guide.md) |
-| 복합 요청 | 해당 모듈 복수로드 (우선순위:  → builder → teaching) |
+| 복합 요청 | 해당 모듈 복수로드 (우선순위: ops-manager → builder → teaching) |
 
 의도가 불분명하면 사용자에게 확인.
 

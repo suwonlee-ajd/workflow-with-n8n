@@ -114,26 +114,6 @@
   "triggerCount": 1,
   "sourceWorkflowId": null,
   "tags": [],
-  "shared": [
-    {
-      "updatedAt": "2026-11-10T03:44:53.945Z",
-      "createdAt": "2026-11-10T03:44:53.945Z",
-      "role": "workflow:owner",
-      "workflowId": "0EZkxUIhzDDkpkLK",
-      "projectId": "a9rwxOsGof9ZE7kc",
-      "project": {
-        "updatedAt": "2026-11-10T01:58:59.940Z",
-        "createdAt": "2026-11-10T01:50:45.200Z",
-        "id": "a9rwxOsGof9ZE7kc",
-        "name": "수원 이 <suwon.lee@ajd.co.kr>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "customTelemetryTags": [],
-        "creatorId": "fbdcae35-e317-4043-ad26-55ba2ee8c1fa"
-      }
-    }
-  ],
   "versionMetadata": {
     "name": null,
     "description": null
