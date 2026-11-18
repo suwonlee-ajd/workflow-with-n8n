@@ -7,7 +7,7 @@
         "export N8N_API_KEY=\"$(sed -n 's/^N8N_API_KEY=//p' services/n8n/.env)\"; exec services/n8n-mcp/node_modules/.bin/n8n-mcp"
       ],
       "env": {
-        "N8N_API_URL": "http://localhost:50990",
+        "N8N_API_URL": "http://localhost:5678",
         "WEBHOOK_SECURITY_MODE": "moderate",
         "N8N_MCP_TELEMETRY_DISABLED": "true"
       }

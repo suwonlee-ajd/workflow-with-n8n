@@ -22,10 +22,10 @@
 | 항목 | 값 |
 |------|----|
 | 실행 위치 | 로컬 PC (macOS, Docker Desktop) |
-| n8n | Docker Compose, `http://localhost:50990` — 설정은 `services/n8n/.env` |
+| n8n | Docker Compose, `http://localhost:5678` — 설정은 `services/n8n/.env` |
 | DB | PostgreSQL 17 (`n8n-postgres` 컨테이너, 호스트 포트 미개방) |
 | n8n-mcp | Claude Code가 `.mcp.json`으로 실행 (stdio, 포트 없음) |
-| n8n-admin | 관리 대시보드, `http://localhost:50999` — git 서브모듈, 설정은 `services/n8n-admin/.env` |
+| n8n-admin | 관리 대시보드, `http://localhost:3000` — git 서브모듈, 설정은 `services/n8n-admin/.env` |
 
 버전은 `services/n8n/.env.example`의 `N8N_VERSION`과 `services/n8n-mcp/package.json`에 고정한다.
 

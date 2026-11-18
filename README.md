@@ -71,7 +71,7 @@ root
 ## 🚀 빠른 시작
 
 ### 1. 접속 정보
-- **URL**: [http://localhost:50990](http://localhost:50990) — 포트는 `services/n8n/.env` 의 `N8N_PORT` (변경 시 `N8N_WEBHOOK_URL` 도 함께 수정 후 `bin/n8n.sh restart`)
+- **URL**: [http://localhost:5678](http://localhost:5678) — 포트는 `services/n8n/.env` 의 `N8N_PORT` (변경 시 `N8N_WEBHOOK_URL` 도 함께 수정 후 `bin/n8n.sh restart`)
 - 처음 접속 시 관리자 계정(이메일, 비밀번호)을 생성하고 즉시 사용하실 수 있습니다.
 
 ### 2. 관리 명령어 (`bin/n8n.sh`)
@@ -170,7 +170,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 
 | 변수 | 값 | 이유 |
 |---|---|---|
-| `N8N_API_URL` | `http://localhost:50990` | 로컬 n8n 주소. **`N8N_PORT` 를 바꾸면 여기도 같이 수정** |
+| `N8N_API_URL` | `http://localhost:5678` | 로컬 n8n 주소. **`N8N_PORT` 를 바꾸면 여기도 같이 수정** |
 | `WEBHOOK_SECURITY_MODE` | `moderate` | 기본값 `strict` 는 localhost 호출을 막아 로컬 웹훅·폼 테스트가 안 됨. `moderate` 는 localhost 허용, 사설 IP·클라우드 메타데이터 주소는 계속 차단 |
 | `N8N_MCP_TELEMETRY_DISABLED` | `true` | n8n-mcp 의 사용 통계 전송 끔 (기본값은 켜짐) |
 
@@ -212,17 +212,17 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 
    | 변수 | 값 |
    |---|---|
-   | `SERVER_URL` | `http://localhost:50990` (로컬 n8n 주소) |
+   | `SERVER_URL` | `http://localhost:5678` (로컬 n8n 주소) |
    | `SERVER_API_KEY` | `services/n8n/.env` 의 `N8N_API_KEY` 와 같은 값 |
    | `ADMIN_PASSWORD` | 대시보드 로그인 비밀번호 |
    | `NEXTAUTH_SECRET` | `openssl rand -base64 32` 로 생성 |
-   | `NEXTAUTH_URL` | `http://localhost:50999` — **대시보드 접속 주소이자 포트 설정** |
+   | `NEXTAUTH_URL` | `http://localhost:3000` — **대시보드 접속 주소이자 포트 설정** |
    | `SLACK_WEBHOOK_URL` | (선택) Slack 앱의 Incoming Webhook 주소. 자동 정리 결과·오류 알림용 |
-4. **실행**: `bin/n8n-admin.sh start` → [http://localhost:50999](http://localhost:50999)
+4. **실행**: `bin/n8n-admin.sh start` → [http://localhost:3000](http://localhost:3000)
 
 - 포트를 바꾸려면 `NEXTAUTH_URL` 의 포트만 고칩니다. `bin/n8n-admin.sh` 가 이 주소에서 포트를 읽어 서버를 띄웁니다 (`bin/n8n-admin.sh port` 로 확인).
-  `NEXTAUTH_URL` 자체는 허용 주소만 정하고 서버 포트는 바꾸지 못하므로, `pnpm dev` 를 직접 실행하면 3000번에 뜨고 모든 요청이 404 가 됩니다.
-- 대시보드는 `NEXTAUTH_URL` 과 다른 주소로 온 요청을 막습니다. `http://127.0.0.1:50999` 로 열면 404 이므로 `localhost` 로 접속합니다.
+  `NEXTAUTH_URL` 자체는 허용 주소만 정하고 서버 포트는 바꾸지 못하므로, 포트를 3000 이 아닌 값으로 바꾼 뒤 `pnpm dev` 를 직접 실행하면 3000번에 뜨고 모든 요청이 404 가 됩니다.
+- 대시보드는 `NEXTAUTH_URL` 과 다른 주소로 온 요청을 막습니다. `http://127.0.0.1:3000` 으로 열면 404 이므로 `localhost` 로 접속합니다.
 - `bin/n8n-admin.sh` 가 `services/n8n-admin/.env` 를 읽어 환경변수로 넘기므로 `admin/.env.local` 은 만들지 않습니다.
 - 업데이트 확인·반영:
   ```bash
