@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.8.0 |
+| 문서 버전 | 0.9.0 |
 | 최종 수정 | 2026-11-18 |
 
 이 프로젝트를 이루는 서비스와 그 연결 관계, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
@@ -79,11 +79,16 @@
 | 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n-postgres/n8n_db_<시각>.sql.gz` |
 | 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_backup_<시각>.tar.gz` |
 | 워크플로우 JSON (백업) | — | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_workflows_<시각>/<ID>.json` |
+| 워크플로우·실행 기록·데이터 테이블 JSON (백업 워크플로우) | — | `[메인] 운영: n8n 데이터 백업` 실행 → `data/backups/n8n-workflow/n8n_<대상>_<시각>.json` |
 | 워크플로우 JSON (git 이력용) | `services/n8n/workflows/` — 현재 저장소에는 없음 | 필요할 때 `bin/n8n.sh export` 로 만들어 커밋 |
 | 컨테이너 로그 | Docker, 그리고 `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` | 백업 대상 아님. [logging.md](logging.md) 참고 |
 | 비밀값 | `services/n8n/.env`, `services/n8n-admin/.env` | git 제외. 따로 보관 |
 
 백업은 `data/backups/<날짜 YYYYMMDD>/<서비스명>/` 아래에, 로그는 `logs/` 아래에 따로 둔다. 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)이다.
+
+백업 위치는 `services/n8n/.env` 의 `BACKUP_DIR` 로 바꿀 수 있다. 비워 두면 `data/backups` 이고, 다른 위치는 절대 경로로 쓴다. `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 값을 읽는다.
+
+n8n 컨테이너에는 `<BACKUP_DIR>/n8n-workflow/` 만 `~/.n8n-files/n8n-workflow` 로 연결한다. n8n 2.x 의 파일 노드는 `~/.n8n-files` 아래만 쓸 수 있어서 이 경로를 쓴다. 볼륨 백업(암호화 키)과 DB 덤프가 있는 나머지 백업 폴더는 연결하지 않아, 워크플로우에서 읽을 수 없다. 파일 쓰기 노드는 이미 있는 폴더에만 쓸 수 있어서, 백업 워크플로우는 하위 폴더 없이 실행 시각을 붙인 파일로 저장한다.
 
 암호화 키(`N8N_ENCRYPTION_KEY`)를 잃으면 DB 백업이 있어도 크레덴셜을 복호화할 수 없다. 볼륨 백업과 DB 백업을 함께 보관한다.
 
