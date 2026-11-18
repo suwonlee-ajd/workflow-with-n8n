@@ -20,11 +20,13 @@ root
 ├── .gitmodules                      # 서브모듈 등록 정보 (n8n-admin 원격 주소)
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
 ├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)
-├── data/backups/                    # bin/n8n.sh backup 결과물 (볼륨 *.tar.gz, DB 덤프 *.sql.gz), workflows/ 는 단일 워크플로우 백업
-├── data/logs/                       # bin/n8n.sh stop·restart 때 저장되는 컨테이너 로그 (git 제외)
+├── data/backups/<날짜>/<서비스명>/  # 백업 (git 제외). 날짜는 YYYYMMDD, 서비스명은 n8n·n8n-postgres
+│                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
+│                                    #   n8n-postgres/  DB 덤프 *.sql.gz
+├── logs/<YYYY>/<YYYY.MM>/           # 컨테이너 로그 파일 <서비스명>.<YYYY-MM-DD>.log (git 제외)
 ├── docs/                            # 프로젝트 관련 문서
-│   ├── architecture.md              # 서비스 구성도, 연결 관계, 서비스별 출처와 설치 방법
-│   ├── logging.md                   # 로그가 남는 곳, 보관, 강제 종료 확인
+│   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
+│   ├── logging.md                   # 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인
 │   ├── n8n-ops-report-format.md     # 주간 운영 리포트 메시지 포맷
 │   └── code-style.md                # 코드 스타일 (작성 전)
 ├── CLAUDE.md                        # Claude Code 프로젝트 규칙
@@ -71,10 +73,10 @@ root
 # 실행 (백그라운드)
 bin/n8n.sh start
 
-# 중지 (컨테이너를 지우기 전에 로그를 data/logs/ 에 저장)
+# 중지 (컨테이너를 지우기 전에 로그를 logs/ 에 기록)
 bin/n8n.sh stop
 
-# 재시작 (환경변수 갱신 시 컨테이너 완전 재생성, 로그 저장은 stop 과 동일)
+# 재시작 (환경변수 갱신 시 컨테이너 완전 재생성, 로그 기록은 stop 과 동일)
 bin/n8n.sh restart
 
 # 실시간 로그 확인
@@ -83,7 +85,9 @@ bin/n8n.sh logs
 # 컨테이너 상태 확인
 bin/n8n.sh status
 
-# 백업: n8n_data 볼륨(*.tar.gz) + PostgreSQL 덤프(*.sql.gz) → data/backups/
+# 백업 → data/backups/<날짜>/ (n8n 이 실행 중이어야 함)
+#   n8n/           n8n_data 볼륨(*.tar.gz), 워크플로우 JSON(n8n_workflows_<시각>/)
+#   n8n-postgres/  PostgreSQL 덤프(*.sql.gz)
 bin/n8n.sh backup
 
 # 워크플로우 내보내기 / 가져오기 (services/n8n/workflows/*.json)
@@ -93,16 +97,18 @@ bin/n8n.sh import
 
 *(docker compose 를 직접 쓸 때는 compose 파일 경로를 지정하면 같은 폴더의 `.env` 를 자동으로 읽습니다: `docker compose -f services/n8n/docker-compose.yml up -d`)*
 
-**컨테이너 로그 보관**
+**컨테이너 로그**
 - 컨테이너 로그는 Docker `json-file` 드라이버에 쌓이며 파일당 10MB·최대 5개로 제한합니다 (`docker-compose.yml` 의 `x-logging`). Docker 에는 일수 기준 롤링이 없습니다.
-- 컨테이너를 지우면 Docker 로그도 사라지므로 `stop`·`restart` 는 지우기 직전에 `data/logs/<컨테이너>_<시각>.log` 로 저장합니다 (타임스탬프 포함, 자동 삭제 없음).
-- 프로세스가 죽어 Docker 가 같은 컨테이너를 다시 띄운 경우에는 로그가 그대로 이어집니다. `docker compose down`·`docker rm` 을 직접 실행하면 저장 없이 사라집니다.
+- 컨테이너를 지우면 Docker 로그도 사라지므로 `stop`·`restart` 는 지우기 직전에 로그 파일로 기록합니다. 경로는 `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` 이고 날짜는 기록한 날입니다 (타임스탬프는 UTC, 자동 삭제 없음). 백업(`data/backups/`)과는 별개입니다.
+- 프로세스가 죽어 Docker 가 같은 컨테이너를 다시 띄운 경우에는 로그가 그대로 이어집니다. `docker compose down`·`docker rm` 을 직접 실행하면 기록 없이 사라집니다.
 - 자세한 내용(강제 종료 확인 방법, n8n 로그 설정 변수 등): [docs/logging.md](docs/logging.md)
 
 ### 3. 워크플로우 형상관리 (export / import)
 워크플로우는 DB(PostgreSQL)에 저장되므로, git 으로 이력을 남기려면 JSON 으로 내보내야 합니다. 두 명령 모두 n8n 이 실행 중이어야 합니다.
 
 > 현재 저장소에는 내보낸 워크플로우 JSON 이 없습니다 (`services/n8n/workflows/` 폴더 없음). 워크플로우 원본은 n8n DB 에만 있으므로 보존은 `bin/n8n.sh backup` 으로 합니다.
+> `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<날짜>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
+> 백업한 JSON 하나를 되돌릴 때는 아래 '파일 하나만 가져올 때' 명령에 그 파일 경로를 넣습니다.
 > git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.
 
 - `export`: 워크플로우 1개당 `<워크플로우 ID>.json` 1개. 폴더의 기존 JSON 을 비우고 통째로 교체하므로 n8n 에서 지운 워크플로우는 파일에서도 사라짐
@@ -117,7 +123,7 @@ bin/n8n.sh import
 - 노드 파라미터에 직접 넣은 토큰·URL, `pinData`(고정 테스트 데이터), `shared`(소유 계정 정보 — 이메일 포함)는 그대로 들어가므로 커밋 전에 확인하고 지우세요
 
 ### 4. 버전 업그레이드
-1. `bin/n8n.sh backup` — 볼륨(암호화 키)과 DB(워크플로우·크레덴셜) 백업
+1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
 2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 도 함께)
 3. `bin/n8n.sh restart` — 새 버전 이미지는 자동으로 pull 됨
 
@@ -136,7 +142,7 @@ n8n 은 DB 설정이 없으면 SQLite 를 쓰지만, 이 프로젝트는 `postgr
 - `POSTGRES_*` 는 **DB 볼륨이 비어 있는 최초 기동 때만** 적용됩니다. 이후 비밀번호를 바꾸려면 DB 안에서도 바꿔야 합니다
   (`docker exec -it n8n-postgres psql -U n8n -c "ALTER USER n8n PASSWORD '<새 비밀번호>'"` → `.env` 수정 → `bin/n8n.sh restart`)
 - DB 접속: `docker exec -it n8n-postgres psql -U n8n -d n8n` (호스트 포트는 열지 않음)
-- 덤프 복원: `gunzip -c data/backups/n8n_db_<시각>.sql.gz | docker exec -i n8n-postgres psql -U n8n -d n8n`
+- 덤프 복원: `gunzip -c data/backups/<날짜>/n8n-postgres/n8n_db_<시각>.sql.gz | docker exec -i n8n-postgres psql -U n8n -d n8n`
 - `N8N_BASIC_AUTH_*` 는 n8n 1.0 에서 사용자 계정 방식으로 바뀌면서 없어진 설정이라 쓰지 않습니다
 
 ### 6. Claude Code 연동 (n8n-mcp)

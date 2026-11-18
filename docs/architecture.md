@@ -31,7 +31,7 @@
 │  │  (워크플로우·실행 기록 등)       (암호화 키·이벤트 로그) │                            │
 │  └──────────────────────────────────────────────────────────┘                            │
 │                                                                                          │
-│  bin/n8n.sh ─▶ 시작·중지·백업·내보내기 (data/backups, data/logs, services/n8n/workflows) │
+│  bin/n8n.sh ─▶ 시작·중지·백업·로그 기록·내보내기 (data/backups, logs, n8n/workflows)     │
 └──────────────────────────────────────────────────┬───────────────────────────────────────┘
                                                    │ 워크플로우가 호출
                                                    ▼
@@ -71,11 +71,14 @@
 
 | 데이터 | 위치 | 백업 |
 |--------|------|------|
-| 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` → `data/backups/n8n_db_<시각>.sql.gz` |
-| 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup` → `data/backups/n8n_backup_<시각>.tar.gz` |
+| 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n-postgres/n8n_db_<시각>.sql.gz` |
+| 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_backup_<시각>.tar.gz` |
+| 워크플로우 JSON (백업) | — | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_workflows_<시각>/<ID>.json` |
 | 워크플로우 JSON (git 이력용) | `services/n8n/workflows/` — 현재 저장소에는 없음 | 필요할 때 `bin/n8n.sh export` 로 만들어 커밋 |
-| 컨테이너 로그 | Docker, 중지·재시작 때 `data/logs/` | [logging.md](logging.md) 참고 |
+| 컨테이너 로그 | Docker, 그리고 `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` | 백업 대상 아님. [logging.md](logging.md) 참고 |
 | 비밀값 | `services/n8n/.env`, `services/n8n-admin/.env` | git 제외. 따로 보관 |
+
+백업은 `data/backups/<날짜 YYYYMMDD>/<서비스명>/` 아래에, 로그는 `logs/` 아래에 따로 둔다. 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)이다.
 
 암호화 키(`N8N_ENCRYPTION_KEY`)를 잃으면 DB 백업이 있어도 크레덴셜을 복호화할 수 없다. 볼륨 백업과 DB 백업을 함께 보관한다.
 
@@ -117,34 +120,22 @@
 
 이름 규칙과 캔버스 그룹 규칙은 [.claude/skills/n8n/references/workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) 의 '네이밍 컨벤션'에 있다.
 
-### 도메인별 구성
+### 워크플로우 예시
 
-2026-11-18 기준이다. 최신 목록은 n8n 화면이나 `n8n_list_workflows` 로 확인한다.
+유형별로 하나씩만 든다. 전체 목록은 n8n 화면이나 `n8n_list_workflows` 로 확인한다.
 
-| 도메인 | 워크플로우 | 시작 방식 | 상태 |
-|--------|------------|-----------|------|
-| 주식 | `[메인] 주식: 국내 종목 선별` | 스케줄, 폼 | 활성 |
-| 주식 | `[서브] 주식: 일별 시세 가져오기` | 메인이 호출 | 활성 |
-| 주식 | `[서브] 주식: 시장 지표 수집` | 메인이 호출 | 활성 |
-| 주식 | `[서브] 주식: 종목 선별 공통` | 메인이 호출 | 활성 |
-| 브리핑 | `[메인] 브리핑: 전국 아침 뉴스` | 스케줄, 폼 | 비활성 |
-| 브리핑 | `[메인] 브리핑: 서울 아침 뉴스` | 스케줄 | 비활성 |
-| 운영 | `[메인] 운영: 신규 워크플로우 알림` | 스케줄 | 활성 |
-| 운영 | `[메인] 운영: 주간 실행 리포트` | 스케줄 | 활성 |
-| 검색 | `[메인] 검색: 네이버 통합검색` | 폼 | 비활성 |
-| 공통 | `[에러] 공통: 실패 알림` | Error Trigger | 활성 |
-| 예제 | `[메인] 예제: 이름 받아 인사하기`, `[메인] 예제: 주문 금액 분류` | 웹훅, 수동 | 비활성 |
-| 예제 | `example-1`, `example-2`, `example-3` (이름 규칙 예외) | 웹훅, 폼 | `example-2` 만 활성 |
-
-- 메인이 서브를 호출하는 구조는 현재 주식 도메인에만 있다. `[메인] 주식: 국내 종목 선별` 이 서브 3개를 차례로 부른다.
-- 나머지 메인은 서브 없이 외부 API 호출과 Slack 전송을 직접 한다.
+| 유형 | 예시 | 시작 방식 | 하는 일 |
+|------|------|-----------|---------|
+| 메인 | `[메인] 주식: 국내 종목 선별` | 스케줄, 폼 | 서브 워크플로우를 차례로 불러 종목을 선별한다 |
+| 서브 | `[서브] 주식: 일별 시세 가져오기` | 메인이 호출 | 시세를 가져와 메인에 돌려준다 |
+| 메인 | `[메인] 운영: 주간 실행 리포트` | 스케줄 | 서브 없이 실행 현황을 모아 Slack 으로 보낸다 |
+| 에러 | `[에러] 공통: 실패 알림` | Error Trigger | 실패한 워크플로우와 원인을 Slack 으로 알린다 |
 
 ### 에러 처리
 
 n8n 은 워크플로우가 실패하면 그 워크플로우 설정의 `errorWorkflow` 에 지정된 워크플로우를 실행한다. 여기서는 `[에러] 공통: 실패 알림` 하나를 공용으로 쓴다.
 
-- 지정된 워크플로우: `[메인] 브리핑: 전국 아침 뉴스`, `[메인] 운영: 신규 워크플로우 알림`, `[메인] 운영: 주간 실행 리포트`
-- 지정되지 않은 워크플로우는 실패해도 알림이 가지 않는다. 주식 도메인 4개가 여기에 해당한다.
+- `errorWorkflow` 를 지정하지 않은 워크플로우는 실패해도 알림이 가지 않는다.
 - 에러 워크플로우는 게시(활성)되어 있어야 동작하고, 편집 화면에서 수동으로 실행한 실패에는 호출되지 않는다.
 
 ### 개발과 반영 흐름
@@ -156,7 +147,7 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 
 1. Claude Code 가 `.claude/skills/n8n` 스킬과 `.claude/rules/n8n` 규칙에 따라 n8n-mcp 로 워크플로우를 검증하고 만들거나 고친다. n8n 화면에서 직접 고쳐도 된다.
 2. 변경은 n8n DB 에 바로 저장된다. 스케줄·웹훅·폼 트리거는 워크플로우를 게시(활성화)해야 동작한다.
-3. git 으로 이력을 남기려면 `bin/n8n.sh export` 로 JSON 을 내보내 커밋한다. 현재는 내보낸 JSON 을 저장소에 두지 않으므로, 워크플로우 원본은 n8n DB 와 `bin/n8n.sh backup` 백업에만 있다.
+3. git 으로 이력을 남기려면 `bin/n8n.sh export` 로 JSON 을 내보내 커밋한다. 현재는 내보낸 JSON 을 저장소에 두지 않으므로, 워크플로우 원본은 n8n DB 와 `bin/n8n.sh backup` 백업(DB 덤프와 워크플로우 JSON)에만 있다.
 4. 다른 n8n 으로 옮길 때는 먼저 `export` 한 JSON 을 `bin/n8n.sh import` 로 가져온다. 크레덴셜 값은 JSON 에 없으므로 다시 만들어 연결한다.
 
 ## 서비스별 출처와 설치
@@ -234,7 +225,7 @@ bin/n8n-admin.sh start                                       # http://localhost:
 4. n8n-mcp 설치와 Claude Code 연결 (README 6장)
 5. n8n-mcp-skills 플러그인 설치
 6. (선택) n8n-admin 설치와 실행 (README 7장)
-7. 워크플로우 옮기기: 저장소에는 워크플로우 JSON 이 없으므로, 기존 n8n 에서 `bin/n8n.sh export` 한 JSON 을 가져와 `bin/n8n.sh import` 하거나 DB 백업을 복원한다 (README 3장, 5장). `import` 로 가져온 워크플로우는 모두 비활성 상태이고, 크레덴셜은 다시 연결해야 한다
+7. 워크플로우 옮기기: 저장소에는 워크플로우 JSON 이 없으므로, 기존 n8n 의 백업(`bin/n8n.sh backup`)에서 DB 덤프를 복원하거나, 백업에 든 워크플로우 JSON 을 `services/n8n/workflows/` 에 넣고 `bin/n8n.sh import` 한다 (README 3장, 5장). `import` 로 가져온 워크플로우는 모두 비활성 상태이고, 크레덴셜은 다시 연결해야 한다
 
 ## 클러스터링
 

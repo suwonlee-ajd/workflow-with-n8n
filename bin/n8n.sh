@@ -5,8 +5,7 @@
 # ==========================================
 
 set -e
-# 파이프 중간 명령(pg_dump 등)이 실패해도 멈추도록
-set -o pipefail
+set -o pipefail                   # 파이프 중간 명령(pg_dump 등)이 실패해도 멈추도록
 
 # 프로젝트 루트 (bin/ 의 상위) 기준으로 경로를 잡음
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
@@ -14,31 +13,38 @@ cd "$ROOT"
 
 ENV_FILE="services/n8n/.env"
 COMPOSE_FILE="services/n8n/docker-compose.yml"
-BACKUP_DIR="data/backups"
-LOG_DIR="data/logs"
+BACKUP_DIR="data/backups"         # 백업: data/backups/<날짜 YYYYMMDD>/<서비스명>/
+LOG_DIR="logs"                    # 로그: logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log
 WORKFLOW_DIR="services/n8n/workflows"
-# export/import 때 컨테이너 안에서 쓰는 임시 경로 (bind mount 대신 docker cp 로 주고받아 uid 권한 문제를 피함)
-WORKFLOW_TMP="/tmp/workflows"
+WORKFLOW_TMP="/tmp/workflows"     # export/import 때 컨테이너 안에서 쓰는 임시 경로
 
 # compose 파일의 ${VAR} 보간도 services/n8n/.env 를 따르도록 --env-file 로 함께 넘김
 compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
-# 컨테이너를 지우면(compose down) Docker 로그도 함께 사라지므로, 지우기 전에 파일로 남김
-# 종료 과정의 로그까지 담기도록 컨테이너를 멈춘 뒤(compose stop) 호출. 실패해도 중지·재시작은 계속 진행
+# 백업 폴더(data/backups/<날짜>/<서비스명>/)를 만들고 경로를 출력. 서비스명은 컨테이너 이름: n8n, n8n-postgres
+# 사용: dir="$(backup_dir <서비스명> <YYYYMMDD_HHMMSS>)"
+backup_dir() {
+  local dir="$BACKUP_DIR/${2%%_*}/$1"
+  mkdir -p "$dir"
+  echo "$dir"
+}
+
+# 컨테이너 로그(Docker 가 보관)를 파일로 기록: logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log (날짜는 기록한 날)
+# 컨테이너를 지우면(compose down) Docker 로그도 함께 사라지므로 stop·restart 가 지우기 전에 호출
+# (종료 과정의 로그까지 담기도록 compose stop 뒤에 호출). 실패해도 중지·재시작은 계속 진행
 save_logs() {
-  mkdir -p "$LOG_DIR"
-  local stamp c file
-  stamp="$(date +%Y%m%d_%H%M%S)"
+  local c dir
+  dir="$LOG_DIR/$(date +%Y)/$(date +%Y.%m)"
+  mkdir -p "$dir"
   for c in n8n n8n-postgres; do
     # 컨테이너가 없으면(이미 지워졌거나 처음 실행) 건너뜀
     docker inspect "$c" >/dev/null 2>&1 || continue
-    file="$LOG_DIR/${c}_${stamp}.log"
-    if docker logs -t "$c" > "$file" 2>&1; then
-      echo "📝 로그 저장: $file ($(wc -l < "$file" | tr -d ' ')줄)"
+    if docker logs -t "$c" >> "$dir/$c.$(date +%Y-%m-%d).log" 2>&1; then
+      echo "📝 로그 기록: $dir/$c.$(date +%Y-%m-%d).log"
     else
-      echo "⚠️ $c 로그 저장에 실패했습니다. 계속 진행합니다."
+      echo "⚠️ $c 로그 기록에 실패했습니다. 계속 진행합니다."
     fi
   done
 }
@@ -74,15 +80,22 @@ case "$1" in
     compose ps
     ;;
   backup)
-    mkdir -p "$BACKUP_DIR"
     STAMP="$(date +%Y%m%d_%H%M%S)"
+    N8N_BACKUP_DIR="$(backup_dir n8n "$STAMP")"
+    DB_BACKUP_DIR="$(backup_dir n8n-postgres "$STAMP")"
     BACKUP_FILE="n8n_backup_${STAMP}.tar.gz"
     DB_BACKUP_FILE="n8n_db_${STAMP}.sql.gz"
-    echo "📦 n8n 데이터 볼륨(n8n_data: 암호화 키 등)을 백업합니다: $BACKUP_DIR/$BACKUP_FILE"
-    docker run --rm -v n8n_data:/volume -v "$ROOT/$BACKUP_DIR":/backup alpine tar -czf "/backup/$BACKUP_FILE" -C /volume ./
-    echo "📦 PostgreSQL(워크플로우·크레덴셜·실행 이력)을 덤프합니다: $BACKUP_DIR/$DB_BACKUP_FILE"
-    compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > "$BACKUP_DIR/$DB_BACKUP_FILE"
-    echo "✅ 백업 완료: $ROOT/$BACKUP_DIR/ ($BACKUP_FILE, $DB_BACKUP_FILE)"
+    WF_BACKUP_DIR="$N8N_BACKUP_DIR/n8n_workflows_${STAMP}"
+    echo "📦 n8n 데이터 볼륨(n8n_data: 암호화 키 등)을 백업합니다: $N8N_BACKUP_DIR/$BACKUP_FILE"
+    docker run --rm -v n8n_data:/volume -v "$ROOT/$N8N_BACKUP_DIR":/backup alpine tar -czf "/backup/$BACKUP_FILE" -C /volume ./
+    echo "📦 PostgreSQL(워크플로우·크레덴셜·실행 이력)을 덤프합니다: $DB_BACKUP_DIR/$DB_BACKUP_FILE"
+    compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > "$DB_BACKUP_DIR/$DB_BACKUP_FILE"
+    # DB 덤프에도 워크플로우가 들어 있지만, 하나씩 열어 보거나 골라서 되돌릴 수 있도록 JSON 으로도 남김 (n8n 이 실행 중이어야 함)
+    echo "📦 워크플로우를 JSON 으로 내보냅니다 (크레덴셜 제외): $WF_BACKUP_DIR/"
+    compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"
+    compose exec -T n8n n8n export:workflow --backup --output="$WORKFLOW_TMP/"
+    compose cp n8n:"$WORKFLOW_TMP/." "$WF_BACKUP_DIR/"
+    echo "✅ 백업 완료: $ROOT/$BACKUP_DIR/${STAMP%%_*}/ (n8n/$BACKUP_FILE, n8n/n8n_workflows_${STAMP}/ $(ls "$WF_BACKUP_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')개, n8n-postgres/$DB_BACKUP_FILE)"
     ;;
   export)
     echo "📤 워크플로우를 $WORKFLOW_DIR 로 내보냅니다 (크레덴셜 제외)..."
