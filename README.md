@@ -28,8 +28,9 @@ root
 ## 📌 주요 설정 포인트 요약
 
 > 모든 설정은 `services/n8n/.env` 한 곳에서 관리합니다. n8n 컨테이너는 `env_file` 로 이 파일을 그대로 읽습니다
-> (`LANG`·`TZ` 처럼 호스트 셸에도 흔히 있는 값이 `.env` 를 덮어쓰지 않도록 compose `${VAR}` 보간은 쓰지 않음).
-> 예외로 DB 접속 정보만 postgres·n8n 두 컨테이너가 공유해야 해서 `${POSTGRES_*}` 보간으로 연결합니다.
+> (`LANG`·`TZ` 처럼 호스트 셸에도 흔히 있는 값이 `.env` 를 덮어쓰지 않도록 n8n 설정값에는 compose `${VAR}` 보간을 쓰지 않음).
+> 예외로 compose 파일 자체가 알아야 하는 값만 `${VAR}` 보간으로 받습니다: 이미지 태그(`N8N_VERSION`), 포트 매핑(`N8N_PORT`),
+> postgres·n8n 두 컨테이너가 공유하는 DB 접속 정보(`POSTGRES_*`).
 
 0. **버전 고정 (`N8N_VERSION=2.44.7`)**
    - 이미지 태그를 `latest` 대신 stable 버전으로 고정 — 컨테이너 재생성 시 의도치 않은 업그레이드·DB 마이그레이션 방지
@@ -148,20 +149,21 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 - `.claude/settings.json` 은 n8n-mcp 도구 사용법 스킬 묶음인 `n8n-mcp-skills` 플러그인을 켭니다.
 - n8n 작업 규칙: [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)
 
-#### n8n-mcp 도구 (2.102.0 기준 28개)
+#### n8n-mcp 도구 (2.103.0 기준 29개)
 
 | 그룹 | 도구 |
 |---|---|
 | 워크플로우 생명주기 (11) | `n8n_health_check` ✅, `n8n_list_workflows` ✅, `n8n_get_workflow` ✅, `n8n_create_workflow` ✅, `n8n_update_partial_workflow` ✅, `n8n_update_full_workflow`, `n8n_delete_workflow`, `n8n_workflow_versions`, `n8n_manage_folders`, `n8n_list_catalog` ✅, `n8n_manage_agents` 🔒 |
 | 검증 및 테스트 (7) | `validate_workflow` ✅, `n8n_validate_workflow` ✅, `validate_node` ✅, `n8n_autofix_workflow`, `n8n_test_workflow`, `n8n_evaluations`, `n8n_audit_instance` ✅ |
-| 실행 및 데이터 (3) | `n8n_executions`, `n8n_manage_datatable`, `n8n_manage_credentials` |
+| 실행 및 데이터 (4) | `n8n_executions`, `n8n_manage_datatable`, `n8n_manage_credentials`, `n8n_manage_variables` |
 | 노드 및 템플릿 (6) | `search_nodes` ✅, `get_node` ✅, `search_templates` ✅, `get_template` ✅, `n8n_deploy_template`, `n8n_explore_node_resources` 🔒 |
 | 참조 (1) | `tools_documentation` ✅ |
 
 - ✅ 확인 창 없이 실행: `.claude/settings.local.json` 의 `permissions.allow` 에 `mcp__n8n-mcp__<도구 이름>` 으로 등록한 도구. 읽기 전용 도구(🔒 제외)와 `n8n_create_workflow`·`n8n_update_partial_workflow` 만 등록합니다. 이 파일은 커밋하지 않는 개인 설정이라 각자 등록해야 합니다
 - 표시 없음: 실행할 때마다 확인. 삭제 동작이 있는 도구(`n8n_delete_workflow`·`n8n_executions`·`n8n_workflow_versions`·`n8n_manage_*`), 전체 교체(`n8n_update_full_workflow`), 실제 실행(`n8n_test_workflow`·`n8n_evaluations`)은 allow 에 넣지 않습니다
 - 🔒 `N8N_MCP_ACCESS_TOKEN` 이 있어야 쓸 수 있음 (현재 사용 불가)
-- 도구 목록은 `tools_documentation` 으로 확인합니다. `n8n_health_check` 진단 모드에 나오는 도구 수(21개)는 실제 등록 수(28개)와 다릅니다
+- `n8n_manage_variables`(2.103.0 추가)는 `$vars` 변수를 관리하는 도구로, 변수 기능이 포함된 n8n 유료 라이선스에서만 동작합니다 (무료 Community 에디션 불가)
+- 도구 목록은 `tools_documentation` 으로 확인합니다. `n8n_health_check` 진단 모드에 나오는 도구 수(21개)는 실제 등록 수(29개)와 다릅니다
 
 ---
 
