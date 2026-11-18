@@ -1,10 +1,15 @@
 # 코드 스타일
 
-이 저장소의 스크립트, 설정 파일, 문서, n8n 워크플로우를 쓸 때 따르는 규칙이다. 현재 코드에서 실제로 쓰는 방식을 정리한 초안이며, 결정을 미룬 것은 마지막 '보류'에 모았다.
+| 항목 | 값 |
+| --- | --- |
+| 문서 버전 | 0.8.0 |
+| 최종 수정 | 2026-11-18 |
+
+이 저장소의 스크립트, 설정 파일, 문서, n8n 워크플로우, PR 메시지·버전 태그를 쓸 때 따르는 규칙이다. 현재 코드에서 실제로 쓰는 방식을 정리한 초안이며, 결정을 미룬 것은 마지막 '보류'에 모았다.
 
 - 기준: 저장소 파일과 n8n 워크플로우(2026-11-18 백업, 예제 제외 12개)
-- 제외: `services/n8n-admin` (외부 리포지토리, 원본 스타일을 따른다)
-- 다른 곳에 있는 규칙은 다시 쓰지 않는다.
+- 제외: `services/n8n-admin` (외부 리포지토리라 원본 스타일을 따름)
+- 다른 문서에 있는 규칙은 다시 쓰지 않고 링크만 함
   - 커밋·브랜치: [CLAUDE.md](../CLAUDE.md) 'Git Flow, Commit 규칙'
   - 워크플로우 이름·캔버스 그룹: [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'
 
@@ -15,10 +20,10 @@
 | 인코딩 | UTF-8, LF, 파일 끝 줄바꿈 1개 |
 | 들여쓰기 | 스페이스 2칸 (Bash, YAML, JSON, JavaScript) |
 | 언어 | 주석·출력 메시지·문서는 한국어. 변수·함수·파일 이름과 명령어·기술 용어는 영어 원어 |
-| 파일 이름 | 영문 소문자, 단어는 하이픈으로 연결 (`n8n-admin.sh`, `n8n-ops-report-format.md`) |
+| 파일 이름 | 영문 소문자, 단어는 하이픈으로 연결 (`n8n-admin.sh`, `code-style.md`) |
 | 경로 | 프로젝트 루트 기준 상대 경로 (`services/n8n/.env`) |
-| 비밀값 | `.env`(git 제외)에만 둔다. 코드·문서·커밋·워크플로우 파라미터에 값을 쓰지 않는다 |
-| 버전 | 정확한 버전으로 고정한다 (`N8N_VERSION=2.44.7`, `"n8n-mcp": "2.103.0"`). `latest`, `^`, `~` 를 쓰지 않는다 |
+| 비밀값 | `.env`(git 제외)에만 둠. 코드·문서·커밋·워크플로우 파라미터에는 쓰지 않음 |
+| 버전 | 정확한 버전으로 고정 (`N8N_VERSION=2.44.7`, `"n8n-mcp": "2.103.0"`). `latest`, `^`, `~` 쓰지 않음 |
 
 ### 주석
 
@@ -99,26 +104,26 @@ esac
 ### 이름과 구조
 
 - 전역 상수는 대문자 스네이크 (`ENV_FILE`, `BACKUP_DIR`), 함수와 지역 변수는 소문자 스네이크 (`backup_dir`, `save_logs`)
-- 함수 안 변수는 `local` 로 선언한다.
-- 함수 위에 하는 일을 주석으로 쓴다. 값을 출력하는 함수는 사용 예도 쓴다.
+- 함수 안 변수는 `local` 로 선언
+- 함수 위에 하는 일을 주석으로 씀. 값을 출력하는 함수는 사용 예도 씀
   - 예: `# 사용: dir="$(backup_dir <서비스명> <YYYYMMDD_HHMMSS>)"`
-- 같은 옵션을 매번 붙이는 명령은 함수로 감싼다 (`compose()` 가 `--env-file`·`-f` 를 항상 붙임).
-- 첫 인자는 하위 명령(`case "$1"`)이고, 나머지 인자는 `"${@:2}"` 로 그대로 넘긴다.
-- 하위 명령을 추가하거나 바꾸면 사용법 문구와 README '2. 관리 명령어'를 함께 고친다.
+- 같은 옵션을 매번 붙이는 명령은 함수로 감쌈 (`compose()` 가 `--env-file`·`-f` 를 항상 붙임)
+- 첫 인자는 하위 명령(`case "$1"`), 나머지 인자는 `"${@:2}"` 로 그대로 넘김
+- 하위 명령을 추가하거나 바꾸면 사용법 문구와 [README](../README.md) '2. 관리 명령어'도 함께 고침
 
 ### 작성 방식
 
-- 변수는 항상 큰따옴표로 감싸고, 명령 치환은 `$(...)` 를 쓴다.
+- 변수는 항상 큰따옴표로 감싸고, 명령 치환은 `$(...)` 사용
 - `.env` 읽기
-  - 값 하나만 필요하면 `sed -n 's/^KEY=//p' "$ENV_FILE"` 로 읽는다 (셸에 불러오지 않음).
-  - 하위 프로세스에 전부 넘겨야 할 때만 `set -a; source "$ENV_FILE"; set +a` 를 쓴다.
+  - 값 하나만 필요할 때: `sed -n 's/^KEY=//p' "$ENV_FILE"` (셸에 불러오지 않음)
+  - 하위 프로세스에 전부 넘겨야 할 때만: `set -a; source "$ENV_FILE"; set +a`
 - 실패 처리
-  - 기본은 `set -e` 로 중단한다.
-  - 실패해도 계속할 단계는 `|| continue` 나 `if … else` 로 드러내고, ⚠️ 메시지에 "계속 진행합니다"를 쓴다.
-  - 사전 조건이 안 맞으면 ❌ 메시지에 다음에 실행할 명령을 넣고 `exit 1` 한다.
+  - 기본은 `set -e` 로 중단
+  - 실패해도 계속할 단계는 `|| continue` 나 `if … else` 로 드러내고, ⚠️ 메시지에 "계속 진행합니다" 표시
+  - 사전 조건이 안 맞으면 ❌ 메시지에 다음에 실행할 명령을 넣고 `exit 1`
     - 예: `❌ services/n8n-admin/.env 가 없습니다. 먼저 실행: cp … 후 값 입력`
-- 오래 실행되는 전경 프로세스는 `exec` 로 넘긴다 (`exec pnpm dev`).
-- 컨테이너 안 임시 경로는 쓰기 전에 비운다 (`compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"`).
+- 오래 실행되는 전경 프로세스는 `exec` 로 넘김 (`exec pnpm dev`)
+- 컨테이너 안 임시 경로는 쓰기 전에 비움 (`compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"`)
 
 ### 출력 메시지
 
@@ -145,50 +150,97 @@ esac
 
 ## 3. Docker Compose (`services/*/docker-compose.yml`)
 
-- 이미지 태그는 `.env` 변수로 고정한다. 필수 변수는 `${VAR:?set VAR in .env}` 로 써서, 비어 있으면 시작을 거부하게 한다.
-- `container_name` 은 서비스 이름으로 고정한다. 스크립트가 이 이름(`n8n`, `n8n-postgres`)을 쓴다.
-- 모든 서비스에 `restart: unless-stopped` 와 `logging: *default-logging` 을 넣는다. 로그 설정은 `x-logging` 앵커 하나로 공유한다.
-- 앱 설정은 `env_file: .env` 로 넘긴다.
-  - `${VAR}` 보간은 compose 가 직접 알아야 하는 값에만 쓴다: 이미지 태그, 포트, 컨테이너끼리 공유하는 DB 접속 정보.
-  - 이유: 호스트 셸의 `LANG`·`TZ` 같은 값이 `.env` 를 덮어쓰지 않게 하려는 것이다.
-- 컨테이너 안에서 확장할 변수는 `$$` 로 쓴다 (`pg_isready -U $${POSTGRES_USER}`).
-- 볼륨 이름은 `name:` 으로 고정한다.
-- 다른 서비스에 의존하면 상대 서비스에 `healthcheck` 를 두고 `depends_on.condition: service_healthy` 로 기다린다.
-- DB 포트는 호스트에 열지 않는다.
-- 키마다 위에 이유를 주석으로 쓴다 (버전 근거, 적용 시점 등).
+- 이미지 태그는 `.env` 변수로 고정. 필수 변수는 `${VAR:?set VAR in .env}` 로 써서 비어 있으면 시작 거부
+- `container_name` 은 서비스 이름으로 고정. 스크립트가 이 이름(`n8n`, `n8n-postgres`)을 사용
+- 모든 서비스에 `restart: unless-stopped` 와 `logging: *default-logging`. 로그 설정은 `x-logging` 앵커 하나로 공유
+- 앱 설정은 `env_file: .env` 로 넘김
+  - `${VAR}` 보간은 compose 가 직접 알아야 하는 값에만: 이미지 태그, 포트, 컨테이너끼리 공유하는 DB 접속 정보
+  - 이유: 호스트 셸의 `LANG`·`TZ` 같은 값이 `.env` 를 덮어쓰지 않도록
+- 컨테이너 안에서 확장할 변수는 `$$` 로 표기 (`pg_isready -U $${POSTGRES_USER}`)
+- 볼륨 이름은 `name:` 으로 고정
+- 다른 서비스에 의존하면 상대 서비스에 `healthcheck` 를 두고 `depends_on.condition: service_healthy` 로 대기
+- DB 포트는 호스트에 열지 않음
+- 키마다 위에 이유를 주석으로 씀 (버전 근거, 적용 시점 등)
 
 ## 4. 환경 변수 템플릿 (`.env.example`)
 
-- `.env` 와 키 구성을 같게 유지한다. 키를 추가하거나 바꾸면 두 파일과 README 를 함께 고친다.
-- 맨 위 블록에 용도, 사용 순서, 표기 규칙(`★` = 직접 입력할 비밀값)을 쓴다.
-- 구역마다 번호 주석 `# N. 제목 — 요약` 을 달고, 키마다 위 줄에 설명을 쓴다.
-- 비밀값은 빈 값으로 두고 `★` 와 생성 방법을 적는다 (`openssl rand -hex 16`).
-- 값은 따옴표 없이 쓴다. 키 이름은 n8n·PostgreSQL 이 정한 이름을 그대로 쓴다.
+- `.env` 와 키 구성을 같게 유지. 키를 추가하거나 바꾸면 두 파일과 README 를 함께 고침
+- 맨 위 블록: 용도, 사용 순서, 표기 규칙(`★` = 직접 입력할 비밀값)
+- 구역마다 번호 주석 `# N. 제목 — 요약`, 키마다 위 줄에 설명
+- 비밀값은 빈 값으로 두고 `★` 와 생성 방법 표시 (`openssl rand -hex 16`)
+- 값은 따옴표 없이. 키 이름은 n8n·PostgreSQL 이 정한 이름 그대로
 
 ## 5. JSON 설정 (`.mcp.json`, `.claude/settings.json`, `package.json`)
 
-- JSON 에는 주석을 쓸 수 없으므로 설명은 README 나 `package.json` 의 `description` 에 쓴다.
-- 비밀값을 넣지 않는다. `.mcp.json` 은 실행할 때 `services/n8n/.env` 에서 `N8N_API_KEY` 를 읽어 넘긴다.
-- 의존성은 정확한 버전으로 적고 `package-lock.json` 을 커밋한다. 설치는 `npm ci` 로 한다.
-- 개인 설정(도구 권한 허용 등)은 `.claude/settings.local.json`(git 제외)에 둔다. `.claude/settings.json` 에는 함께 쓸 설정만 넣는다.
+- JSON 에는 주석을 쓸 수 없으므로 설명은 README 나 `package.json` 의 `description` 에 씀
+- 비밀값을 넣지 않음. `.mcp.json` 은 실행할 때 `services/n8n/.env` 에서 `N8N_API_KEY` 를 읽어 넘김
+- 의존성은 정확한 버전으로 적고 `package-lock.json` 을 커밋. 설치는 `npm ci`
+- 개인 설정(도구 권한 허용 등)은 `.claude/settings.local.json`(git 제외)에 둠. `.claude/settings.json` 에는 함께 쓸 설정만
 
 ## 6. 문서 (`README.md`, `docs/`, `.claude/`)
 
-- 파일마다 `#` 제목은 하나이고, 바로 아래 한두 문장으로 문서 범위를 쓴다.
+### 문서 머리 (`docs/`)
+
+`docs/` 아래 md 문서는 아래 틀로 시작한다. `README.md`, `CLAUDE.md`, `CHANGELOG.md`, `.claude/` 아래 문서에는 버전 표를 넣지 않는다.
+
+```markdown
+# {문서 제목}
+
+| 항목 | 값 |
+| --- | --- |
+| 문서 버전 | {작성 당시 태그 버전, 예: 0.7.0} |
+| 최종 수정 | {YYYY-MM-DD} |
+
+{이 문서가 다루는 범위 한두 문장}
+
+## {장 제목}
+```
+
+- 순서: `#` 제목 → 버전 표 → 범위 문장 → 본문
+- 문서 버전: 문서를 쓰거나 고칠 때 이미 붙어 있는 최신 프로젝트 태그(8장 '버전 태그')를 `v` 없이 적음
+  - 확인: `git describe --tags --abbrev=0` (예: `v0.7.0` → `0.7.0`)
+  - 버전업 준비 PR 에서는 `docs/` 문서 전체의 문서 버전을 새 버전으로 함께 올림
+- 최종 수정: 내용을 바꾼 날짜 (KST). 문서 버전과 함께 고침
+
+### frontmatter 가 필요한 파일
+
+`SKILL.md` 는 첫 줄부터 YAML frontmatter 로 시작한다. Claude Code 가 첫 줄의 `---` 로 frontmatter 를 찾으므로, 그 앞에 빈 줄이나 제목 등 아무것도 두지 않는다.
+
+- 필수 키
+  - `name`: 스킬 폴더 이름과 같게. 영문 소문자, 단어는 하이픈으로 연결
+  - `description`: 하는 일과 트리거할 요청 예시
+- `#` 제목은 frontmatter 다음에 둠
+- `references/` 아래 모듈 문서는 frontmatter 없이 일반 문서처럼 `#` 제목으로 시작
+- 다른 md 에 frontmatter 를 쓸 때도 같은 규칙으로 맨 앞에 둠
+
+```markdown
+---
+name: n8n
+description: "n8n 워크플로우 자동화. … 다음 키워드에 트리거. 예: 'n8n', '워크플로우 만들어줘'."
+---
+
+# n8n 워크플로우 자동화 스킬
+
+n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, 운영하는 스킬.
+```
+
+### 문체와 형식
+
+- `#` 제목은 파일마다 하나
 - 문체
-  - `docs/`·`.claude/`·`CLAUDE.md` 의 본문은 `…다` 체로 쓴다.
-  - README 의 본문은 `…습니다` 체로 쓴다.
-  - 표와 목록 항목은 명사형으로 짧게 쓴다.
-- 비교와 목록은 표로 쓴다. 구성도와 디렉터리 트리는 ```` ```text ````, 명령은 ```` ```bash ```` 블록에 넣는다.
-- 코드, 경로, 명령, 키, 노드 이름은 백틱으로 감싼다.
-- 다른 문서는 상대 경로로 링크한다. 같은 규칙을 두 곳에 쓰지 않고 원본 문서에 링크한다.
-- 버전에 따라 달라지는 내용에는 기준 버전을 적는다 (`n8n-mcp 2.103.0 기준`).
-- 새 문서를 만들면 CLAUDE.md '개요' 표와 README '디렉터리 구조'에 등록한다.
-- 예시에는 실제 비밀값이나 개인 정보를 쓰지 않고 가짜 값을 쓴다 (`admin@co.kr`).
+  - `docs/`·`.claude/`·`CLAUDE.md` 의 본문은 `…다` 체
+  - README 의 본문은 `…습니다` 체
+  - 표와 목록 항목은 명사형으로 짧게
+- 비교와 목록은 표로. 구성도와 디렉터리 트리는 ```` ```text ````, 명령은 ```` ```bash ```` 블록
+- 코드, 경로, 명령, 키, 노드 이름은 백틱으로 감쌈
+- 다른 문서는 상대 경로로 링크. 같은 규칙을 두 곳에 쓰지 않고 원본 문서에 링크
+- 버전에 따라 달라지는 내용에는 기준 버전 표시 (`n8n-mcp 2.103.0 기준`)
+- 새 문서를 만들면 [CLAUDE.md](../CLAUDE.md) '개요' 표와 [README](../README.md) '디렉터리 구조'에 등록
+- 예시에는 실제 비밀값이나 개인 정보 대신 가짜 값 사용 (`admin@co.kr`)
 
 ## 7. n8n 워크플로우
 
-워크플로우 이름과 캔버스 그룹은 workflow-builder.md '네이밍 컨벤션'을 따른다. 여기서는 노드와 설정을 다룬다.
+워크플로우 이름과 캔버스 그룹은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'을 따른다. 여기서는 노드와 설정을 다룬다.
 
 ### 노드 이름
 
@@ -210,9 +262,9 @@ esac
 
 ### 설정값과 크리덴셜
 
-- 실행마다 바꿀 수 있는 값(기간, 개수, 기준값)은 트리거 다음 `실행 설정` Set 노드에 모은다. 뒤 노드는 `$('실행 설정').first().json.<키>` 로 읽는다.
-- 인증은 크리덴셜로만 한다 (`httpHeaderAuth`, `httpCustomAuth`, `slackApi`, `openAiApi`, `n8nApi`). 토큰을 URL 이나 헤더 파라미터에 직접 쓰지 않는다.
-- 계정마다 다른 값(Slack 채널, 크리덴셜 선택)은 비워 두고 n8n 화면에서 고르도록 안내한다. `$env` 는 쓰지 않는다.
+- 실행마다 바꿀 수 있는 값(기간, 개수, 기준값)은 트리거 다음 `실행 설정` Set 노드에 모음. 뒤 노드는 `$('실행 설정').first().json.<키>` 로 읽음
+- 인증은 크리덴셜로만 (`httpHeaderAuth`, `httpCustomAuth`, `slackApi`, `openAiApi`, `n8nApi`). 토큰을 URL 이나 헤더 파라미터에 직접 쓰지 않음
+- 계정마다 다른 값(Slack 채널, 크리덴셜 선택)은 비워 두고 n8n 화면에서 고르도록 안내. `$env` 는 쓰지 않음
 
 ### 워크플로우 설정
 
@@ -225,25 +277,25 @@ esac
 
 ### 외부 호출과 오류
 
-- 외부 API·Slack·LLM 노드는 `retryOnFail` 을 켠다. `maxTries`·`waitBetweenTries` 는 대상 서비스에 맞춰 노드마다 정한다 (현재 2~3회, 1~5초).
-- 일부 소스가 실패해도 결과를 보낼 수 있으면 `onError: continueRegularOutput` 으로 둔다. 다음 노드에서 오류 필드를 확인해 `errors` 에 모으고 결과와 함께 넘긴다.
-- 더 진행할 수 없으면 멈춘다. 오류 메시지는 원인과 확인할 것을 한국어로 쓴다.
+- 외부 API·Slack·LLM 노드는 `retryOnFail` 을 켬. `maxTries`·`waitBetweenTries` 는 대상 서비스에 맞춰 노드마다 정함 (현재 2~3회, 1~5초)
+- 일부 소스가 실패해도 결과를 보낼 수 있으면 `onError: continueRegularOutput`. 다음 노드에서 오류 필드를 확인해 `errors` 에 모으고 결과와 함께 넘김
+- 더 진행할 수 없으면 멈춤. 오류 메시지에는 원인과 확인할 것을 한국어로 씀
   - 예: `throw new Error('최근 5거래일의 국내 시세가 없습니다. KRX 크리덴셜과 서비스 승인 상태를 확인하세요.')`
 
 ### Code 노드 (JavaScript)
 
-- 기본 노드(Set, Filter, IF, Split Out, Aggregate, Merge 등)로 할 수 없을 때만 쓴다. `notes` 는 `Why Code:` 로 시작해 이유를 쓴다.
-- 모드는 `Run Once for All Items` (`runOnceForAllItems`).
+- 기본 노드(Set, Filter, IF, Split Out, Aggregate, Merge 등)로 할 수 없을 때만 사용. `notes` 는 `Why Code:` 로 시작해 이유를 씀
+- 모드는 `Run Once for All Items` (`runOnceForAllItems`)
 - 형식
-  - 작은따옴표와 세미콜론을 쓴다.
-  - 변수는 `const` 가 기본이고, 다시 대입할 때만 `let` 을 쓴다.
-  - 짧은 헬퍼는 화살표 함수로, 이름 붙은 계산(예: `rsi`)은 `function` 으로 쓴다.
-- 맨 위 주석 한 줄로 노드가 하는 일을 쓴다. 주석 문체는 1장 '주석'을 따른다.
-- 앞 노드 값은 `$('노드 이름').first().json` 이나 `.all()` 로 읽는다.
-- 입력은 비어 있거나 형식이 다를 수 있다고 보고 막는다: `Array.isArray(x) ? x : []`, `?? []`, `|| {}`, 숫자는 `Number.isFinite`.
-- 외부 호출을 반복할 때는 `this.helpers.httpRequest` 에 `timeout` 을 주고, 요청 사이에 간격(1.5초)을 두며, 실패하면 한 번 다시 시도한다.
-- 날짜는 Luxon 으로 다룬다 (`DateTime.now().setZone('Asia/Seoul')`).
-- 반환 형식은 `[{ json: { ... } }]` 이다.
+  - 작은따옴표와 세미콜론 사용
+  - 변수는 `const` 가 기본, 다시 대입할 때만 `let`
+  - 짧은 헬퍼는 화살표 함수, 이름 붙은 계산(예: `rsi`)은 `function`
+- 맨 위 주석 한 줄로 노드가 하는 일을 씀. 주석 문체는 1장 '주석'을 따름
+- 앞 노드 값은 `$('노드 이름').first().json` 이나 `.all()` 로 읽음
+- 입력은 비어 있거나 형식이 다를 수 있다고 보고 막음: `Array.isArray(x) ? x : []`, `?? []`, `|| {}`, 숫자는 `Number.isFinite`
+- 외부 호출을 반복할 때는 `this.helpers.httpRequest` 에 `timeout` 을 주고, 요청 사이에 간격(1.5초)을 두며, 실패하면 한 번 다시 시도
+- 날짜는 Luxon 으로 다룸 (`DateTime.now().setZone('Asia/Seoul')`)
+- 반환 형식은 `[{ json: { ... } }]`
 
 ```javascript
 // 기간 안의 실행만 골라 워크플로우별 횟수를 셈
@@ -259,10 +311,66 @@ return [{ json: { rows, errors } }];
 
 ### 저장소에 넣는 워크플로우 JSON
 
-- `bin/n8n.sh export` 결과를 커밋할 때는 다음을 지운다: `shared`(소유 계정 이메일), `pinData`(고정 테스트 데이터), 파라미터에 직접 넣은 토큰.
-- 나머지는 n8n 이 내보낸 형식(2칸 들여쓰기, 한글 그대로)을 유지한다.
+- `bin/n8n.sh export` 결과를 커밋할 때 지울 것: `shared`(소유 계정 이메일), `pinData`(고정 테스트 데이터), 파라미터에 직접 넣은 토큰
+- 나머지는 n8n 이 내보낸 형식(2칸 들여쓰기, 한글 그대로) 유지
 
-## 8. 작성 후 확인
+## 8. PR과 버전 태그
+
+### PR 메시지
+
+- 제목은 커밋 메시지와 같은 `<type>: <subject>` 형식 (50자 이내). 커밋이 여럿이면 PR 전체를 한 줄로 요약
+  - type 은 버전 태그를 올리는 기준 (아래 '버전 태그')
+- base 는 `main` (`develop` 을 만들기 전까지). 병합은 병합 커밋을 남기는 방식
+- 본문은 아래 틀 사용. 목록 항목은 명사형으로 짧게
+
+```markdown
+## 요약
+- 무엇을 왜 바꿨는지 1~3줄
+
+## 변경 내용
+- `경로`: 바뀐 내용 (동작이 그대로면 "동작 변경 없음")
+
+## 확인
+- 실행한 검증과 결과 (명령, 실행 번호 등)
+
+## 호환성
+- (호환이 깨질 때만) 사용자가 할 일: .env 키 변경, 재설치, 데이터 이전 등
+
+## 참고
+- (선택) 동작 방식, 주의할 점, 후속 작업
+```
+
+- 비밀값과 개인 정보(이메일, API 키 등)는 본문에 쓰지 않음
+- Claude Code 가 PR 본문 끝에 붙이는 `🤖 Generated with [Claude Code](https://claude.com/claude-code)` 문구는 지움
+
+### 버전 태그
+
+`main` 에 병합될 때마다 그 병합 커밋에 버전 태그를 하나 붙인다.
+
+- 형식: `v<MAJOR>.<MINOR>.<PATCH>` ([SemVer](https://semver.org/lang/ko/)), annotated 태그
+- 메시지: PR 제목과 번호 (예: `docs: README 뱃지·참조 섹션 추가 (#4)`)
+- 기준: `v0.7.0` (PR #4 병합, `e469645`). 이후 병합부터 아래 표대로 올림
+
+| 올리는 자리 | 언제 | PR 제목 type |
+|-------------|------|--------------|
+| MAJOR | 큰 변경이 있을 때<br>- 이전 버전과 호환이 깨짐 (설치·실행 방법 변경 등)<br>- 구조가 크게 바뀜<br>- 메인 기능 추가 | 없음. |
+| MINOR | 그 밖의 기능 추가 | `feat` |
+| PATCH | 그 밖의 변경 | `fix`, `bugfix`, `hotfix`, `docs`, `refactor`, `chore`, `test` |
+
+- `1.0.0` 전에는 MAJOR 에 해당하는 변경도 MINOR 를 올림. `1.0.0` 은 안정판으로 정할 때 올림
+- 프로젝트 버전은 n8n·n8n-mcp 버전과 별개
+- 버전을 올리는 PR 에서 [CHANGELOG.md](../CHANGELOG.md) 에 그 버전 항목을 추가 (호환성·추가·변경·수정·삭제 중 해당하는 것)
+- `docs/` 문서 머리의 '문서 버전'은 이 태그를 따름 (6장 '문서 머리')
+- 올린 태그는 옮기거나 지우지 않음. 잘못 붙였으면 다음 PATCH 로 바로잡음
+
+```bash
+git switch main && git pull --ff-only
+git describe --tags --abbrev=0                                # 직전 버전 확인
+git tag -a v0.8.0 -m "docs: 문서·버전 규칙 정리, 기본 포트로 변경 (#5)"   # 병합 커밋(main 최신)에 태그
+git push origin v0.8.0
+```
+
+## 9. 작성 후 확인
 
 | 대상 | 명령 |
 |------|------|
@@ -271,9 +379,9 @@ return [{ json: { rows, errors } }];
 | JSON | `jq empty <파일>` |
 | n8n 워크플로우 | `n8n_validate_workflow` (ID 기준) |
 
-- Compose 검사는 `-q` 를 꼭 붙인다. 빼면 `.env` 의 비밀값이 화면에 그대로 출력된다.
+- Compose 검사는 `-q` 필수. 빼면 `.env` 의 비밀값이 화면에 그대로 출력됨
 
-## 9. 보류
+## 10. 보류
 
 결정을 미룬 것이다. 나머지는 위 규칙에 반영했다.
 
