@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.9.0 |
+| 문서 버전 | 0.9.1 |
 | 최종 수정 | 2026-11-18 |
 
 이 저장소의 스크립트, 설정 파일, 문서, n8n 워크플로우, PR 메시지·버전 태그를 쓸 때 따르는 규칙이다. 현재 코드에서 실제로 쓰는 방식을 정리한 초안이며, 결정을 미룬 것은 마지막 '보류'에 모았다.
@@ -144,7 +144,7 @@ esac
 |------|------|
 | 실행 시각 스탬프 | `%Y%m%d_%H%M%S` (예: `20261118_151900`) |
 | 백업 | `<BACKUP_DIR>/<YYYYMMDD>/<서비스명>/` (`BACKUP_DIR` 기본값 `data/backups`) |
-| 백업 워크플로우 | `<BACKUP_DIR>/n8n-workflow/n8n_<대상>_<YYYYMMDD_HHMMSS>.json` (하위 폴더 없음) |
+| 백업 워크플로우 | `<BACKUP_DIR>/n8n-workflow/` 에 `n8n_workflow_<YYYYMMDD_HHMMSS>_<워크플로우 ID>.json`(워크플로우마다), `n8n_{executions,datatables}_<YYYYMMDD_HHMMSS>.json` (하위 폴더 없음) |
 | 로그 | `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` |
 
 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)을 쓴다.
@@ -277,6 +277,18 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 | `executionOrder` | `v1` |
 | `errorWorkflow` | `[에러] 공통: 실패 알림` (에러 워크플로우 자신은 제외) |
 | `availableInMCP` | `true` |
+
+### 노드 버전
+
+- 노드 `typeVersion` 은 실행 중인 n8n(`N8N_VERSION`, 현재 2.44.7)이 지원하는 값으로 씀
+  - 이유: n8n-mcp 가 더 새 버전을 알려 줄 수 있음
+  - 예: Convert to File 은 2.44.7 에서 1.1 까지인데 1.2 로 만들자, 화면에서 저장할 때 설정이 비워져 CSV 로 바뀜
+- 확인: 컨테이너 안 노드 정의의 `version`
+
+```bash
+# 예: Convert to File (2.44.7 기준 [1, 1.1])
+docker exec n8n sh -c 'grep -o "version: \[[^]]*\]" $(find /usr/local/lib/node_modules/n8n -path "*n8n-nodes-base/dist/nodes/Files/ConvertToFile/ConvertToFile.node.js" | head -1)'
+```
 
 ### 외부 호출과 오류
 
