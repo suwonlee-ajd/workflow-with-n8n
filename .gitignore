@@ -1,14 +1,54 @@
-# 비밀값 (DB 비밀번호·암호화 키·API 키) — 커밋 금지
-services/n8n/.env
+# Claude Code 설정
+# .claude
+# CLAUDE.md
+.claude/settings.local.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Distribution / packaging
+develop-eggs/
+dist/
+downloads/
+lib/
+lib64/
+node_modules/
+var/
+wheels/
+MANIFEST
+
+# Cache
+.cache
+.coverage
+.pytest_cache/
+cover/
+
+# 환경변수 등 비밀값
+.env
+.envrc
+.venv
+venv/
+ENV/
 secrets/
+*.pem
+*.key
+
+# 로그
+logs/
+*.log
+db.sqlite3
+db.sqlite3-journal
 
 # 설치·실행 결과물
-services/n8n-mcp/node_modules/
 data/
+temp/
 tmp/
+bck/
+*.temp
+*.tmp
+*.bck
 
 # OS
 .DS_Store
-
-# Claude Code 개인 설정 (권한 등) — 커밋 금지
-.claude/settings.local.json

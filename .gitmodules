@@ -1,0 +1,3 @@
+[submodule "services/n8n-admin"]
+	path = services/n8n-admin
+	url = https://github.com/team-datapopcorn/n8n-admin.git
