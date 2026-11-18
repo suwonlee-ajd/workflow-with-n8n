@@ -1,4 +1,6 @@
-# 컨테이너 로그(표준 출력) 크기 제한 — 파일당 10MB, 최대 5개 (컨테이너당 약 50MB). 넘으면 오래된 파일부터 삭제
+# 컨테이너 로그(표준 출력) 크기 제한
+# - 파일당 10MB, 최대 5개 (컨테이너당 약 50MB)
+# - 넘으면 오래된 파일부터 삭제
 x-logging: &default-logging
   driver: json-file
   options:
@@ -7,7 +9,7 @@ x-logging: &default-logging
 
 services:
   postgres:
-    # n8n 2.44.7 기준 지원 범위는 17 이상 (16 은 호환 모드 경고)
+    # PostgreSQL 17: n8n 2.44.7 기준 지원 범위가 17 이상 (16 은 호환 모드 경고)
     image: postgres:17-alpine
     container_name: n8n-postgres
     restart: unless-stopped
@@ -52,7 +54,8 @@ services:
         condition: service_healthy
 
 volumes:
-  # 암호화 키(config)·커뮤니티 노드 등 (워크플로우·크레덴셜은 postgres 쪽)
+  # 암호화 키(config)·커뮤니티 노드 등
+  # - 워크플로우·크레덴셜은 n8n_postgres_data 에 저장
   n8n_data:
     name: n8n_data
   n8n_postgres_data:
