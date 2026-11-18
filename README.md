@@ -9,12 +9,15 @@
 ```text
 root
 ├── bin/n8n.sh                       # n8n 시작·중지·로그·백업 제어 스크립트
+├── bin/n8n-admin.sh                 # n8n-admin 대시보드 실행 스크립트 (7장 참고)
 ├── services/n8n/
 │   ├── .env                         # 환경변수 (버전·포트·타임존·로케일·DB 계정·암호화 키·API 키) — 비밀값 포함, git 제외
 │   ├── .env.example                 # .env 템플릿 (비밀값은 비워 둠) — cp .env.example .env 후 ★ 항목 채우기
 │   ├── docker-compose.yml           # n8n + PostgreSQL 컨테이너 정의
 │   └── workflows/                   # 워크플로우 JSON (bin/n8n.sh export/import, git 관리 대상)
 ├── services/n8n-mcp/                # Claude Code 용 n8n MCP 서버 (6장 참고)
+├── services/n8n-admin/              # n8n 관리 대시보드 — 외부 리포지토리를 git 서브모듈로 연결 (7장 참고)
+├── .gitmodules                      # 서브모듈 등록 정보 (n8n-admin 원격 주소)
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
 ├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)
 ├── data/backups/                    # bin/n8n.sh backup 결과물 (볼륨 *.tar.gz, DB 덤프 *.sql.gz)
@@ -162,6 +165,42 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 - 표시 없음: 실행할 때마다 확인. 삭제 동작이 있는 도구(`n8n_delete_workflow`·`n8n_executions`·`n8n_workflow_versions`·`n8n_manage_*`), 전체 교체(`n8n_update_full_workflow`), 실제 실행(`n8n_test_workflow`·`n8n_evaluations`)은 allow 에 넣지 않습니다
 - 🔒 `N8N_MCP_ACCESS_TOKEN` 이 있어야 쓸 수 있음 (현재 사용 불가)
 - 도구 목록은 `tools_documentation` 으로 확인합니다. `n8n_health_check` 진단 모드에 나오는 도구 수(21개)는 실제 등록 수(28개)와 다릅니다
+
+### 7. 관리 대시보드 (n8n-admin)
+[n8n-admin](https://github.com/team-datapopcorn/n8n-admin) 은 워크플로우·유저·크레덴셜을 웹 화면에서 관리하는 외부 도구입니다. 코드를 복사하지 않고 git 서브모듈(`services/n8n-admin/`)로 연결하므로, 이 리포지토리에는 원격 주소와 고정한 커밋만 기록됩니다.
+
+1. **받기** (clone 직후 1회 — `git clone --recurse-submodules` 로 받았다면 생략)
+   ```bash
+   git submodule update --init
+   ```
+2. **의존성 설치** (Node.js 20 이상, pnpm 필요)
+   ```bash
+   cd services/n8n-admin/admin && pnpm install
+   ```
+3. **설정**: `cp services/n8n-admin/.env.example services/n8n-admin/.env` 후 아래 값을 채웁니다. 이 파일은 서브모듈 쪽 `.gitignore` 로 커밋에서 제외됩니다.
+
+   | 변수 | 값 |
+   |---|---|
+   | `SERVER_URL` | `http://localhost:50990` (로컬 n8n 주소) |
+   | `SERVER_API_KEY` | `services/n8n/.env` 의 `N8N_API_KEY` 와 같은 값 |
+   | `ADMIN_PASSWORD` | 대시보드 로그인 비밀번호 |
+   | `NEXTAUTH_SECRET` | `openssl rand -base64 32` 로 생성 |
+   | `NEXTAUTH_URL` | `http://localhost:50999` — **대시보드 접속 주소이자 포트 설정** |
+   | `SLACK_WEBHOOK_URL` | (선택) Slack 앱의 Incoming Webhook 주소. 자동 정리 결과·오류 알림용 |
+4. **실행**: `bin/n8n-admin.sh start` → [http://localhost:50999](http://localhost:50999)
+
+- 포트를 바꾸려면 `NEXTAUTH_URL` 의 포트만 고칩니다. `bin/n8n-admin.sh` 가 이 주소에서 포트를 읽어 서버를 띄웁니다 (`bin/n8n-admin.sh port` 로 확인).
+  `NEXTAUTH_URL` 자체는 허용 주소만 정하고 서버 포트는 바꾸지 못하므로, `pnpm dev` 를 직접 실행하면 3000번에 뜨고 모든 요청이 404 가 됩니다.
+- 대시보드는 `NEXTAUTH_URL` 과 다른 주소로 온 요청을 막습니다. `http://127.0.0.1:50999` 로 열면 404 이므로 `localhost` 로 접속합니다.
+- `bin/n8n-admin.sh` 가 `services/n8n-admin/.env` 를 읽어 환경변수로 넘기므로 `admin/.env.local` 은 만들지 않습니다.
+- 업데이트 확인·반영:
+  ```bash
+  git -C services/n8n-admin fetch
+  git -C services/n8n-admin log --oneline HEAD..origin/main   # 새 커밋 확인
+  git submodule update --remote services/n8n-admin            # 최신으로 올리기
+  git add services/n8n-admin                                  # 올린 버전을 이 리포지토리에 기록
+  ```
+- 서브모듈 안의 파일은 수정하지 않습니다 (원본과 달라지면 업데이트 때 충돌).
 
 ---
 
