@@ -49,6 +49,12 @@ services:
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - n8n_data:/home/node/.n8n
+      # 백업 워크플로우의 저장 폴더 연결
+      # - 호스트 <BACKUP_DIR>/n8n-workflow = 컨테이너 ~/.n8n-files/n8n-workflow
+      # - BACKUP_DIR 은 .env 에서 지정, 비어 있으면 data/backups
+      # - n8n 2.x 파일 노드는 ~/.n8n-files 아래만 접근 가능
+      # - BACKUP_DIR 전체는 연결하지 않음: 볼륨 백업(암호화 키)·DB 덤프 노출 방지
+      - ${BACKUP_DIR:-../../data/backups}/n8n-workflow:/home/node/.n8n-files/n8n-workflow
     depends_on:
       postgres:
         condition: service_healthy
