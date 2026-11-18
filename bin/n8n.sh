@@ -85,11 +85,17 @@ case "$1" in
     DB_BACKUP_DIR="$(backup_dir n8n-postgres "$STAMP")"
     BACKUP_FILE="n8n_backup_${STAMP}.tar.gz"
     DB_BACKUP_FILE="n8n_db_${STAMP}.sql.gz"
+    WF_BACKUP_DIR="$N8N_BACKUP_DIR/n8n_workflows_${STAMP}"
     echo "📦 n8n 데이터 볼륨(n8n_data: 암호화 키 등)을 백업합니다: $N8N_BACKUP_DIR/$BACKUP_FILE"
     docker run --rm -v n8n_data:/volume -v "$ROOT/$N8N_BACKUP_DIR":/backup alpine tar -czf "/backup/$BACKUP_FILE" -C /volume ./
     echo "📦 PostgreSQL(워크플로우·크레덴셜·실행 이력)을 덤프합니다: $DB_BACKUP_DIR/$DB_BACKUP_FILE"
     compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > "$DB_BACKUP_DIR/$DB_BACKUP_FILE"
-    echo "✅ 백업 완료: $ROOT/$BACKUP_DIR/${STAMP%%_*}/ (n8n/$BACKUP_FILE, n8n-postgres/$DB_BACKUP_FILE)"
+    # DB 덤프에도 워크플로우가 들어 있지만, 하나씩 열어 보거나 골라서 되돌릴 수 있도록 JSON 으로도 남김 (n8n 이 실행 중이어야 함)
+    echo "📦 워크플로우를 JSON 으로 내보냅니다 (크레덴셜 제외): $WF_BACKUP_DIR/"
+    compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"
+    compose exec -T n8n n8n export:workflow --backup --output="$WORKFLOW_TMP/"
+    compose cp n8n:"$WORKFLOW_TMP/." "$WF_BACKUP_DIR/"
+    echo "✅ 백업 완료: $ROOT/$BACKUP_DIR/${STAMP%%_*}/ (n8n/$BACKUP_FILE, n8n/n8n_workflows_${STAMP}/ $(ls "$WF_BACKUP_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')개, n8n-postgres/$DB_BACKUP_FILE)"
     ;;
   export)
     echo "📤 워크플로우를 $WORKFLOW_DIR 로 내보냅니다 (크레덴셜 제외)..."
