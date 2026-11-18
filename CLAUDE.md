@@ -9,10 +9,9 @@
 | [README.md](README.md) | 설치, 실행, 설정, 디렉터리 구조 |
 | [docs/architecture.md](docs/architecture.md) | 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법 |
 | [docs/logging.md](docs/logging.md) | 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인 |
-| [docs/n8n-ops-report-format.md](docs/n8n-ops-report-format.md) | 주간 운영 리포트 메시지 포맷 |
 | [docs/code-style.md](docs/code-style.md) | 코드 스타일 (작성 전) |
 | [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md) | n8n 작업에 항상 적용하는 규칙 |
-| [.claude/skills/n8n/SKILL.md](.claude/skills/n8n/SKILL.md) | n8n 워크플로우 생성·운영·교육 스킬 |
+| [.claude/skills/n8n/SKILL.md](.claude/skills/n8n/SKILL.md) | n8n 워크플로우 생성·운영·교육 스킬 (주간 운영 리포트 포함) |
 
 ## HARD RULES
 

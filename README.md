@@ -27,7 +27,6 @@ root
 ├── docs/                            # 프로젝트 관련 문서
 │   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
 │   ├── logging.md                   # 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인
-│   ├── n8n-ops-report-format.md     # 주간 운영 리포트 메시지 포맷
 │   └── code-style.md                # 코드 스타일 (작성 전)
 ├── CLAUDE.md                        # Claude Code 프로젝트 규칙
 └── README.md

@@ -1,6 +1,6 @@
 ---
 name: n8n
-description: "n8n 워크플로우 자동화. n8n-mcp로 워크플로우를 생성·수정·분석하거나, 실행 에러를 분석하거나, 운영 상 모티터링·디버깅, 컨텐츠 생성을 지원하며, n8n 사용법을 설명할 때 사용하며 다음 키워드에 트리거. 예: 'n8n', 'n8n 워크플로우', 'n8n 자동화', '워크플로우 목록 보여줘', '이 워크플로우 정보 알려줘', '워크플로우 만들어줘', '이 워크플로우 수정해줘', '실행이 실패한 원인 찾아줘', 'n8n 노드 사용법 알려줘'."
+description: "n8n 워크플로우 자동화. n8n-mcp로 워크플로우를 생성·수정·분석하거나, 실행 에러를 분석하거나, 운영 상 모티터링·디버깅, 컨텐츠 생성을 지원하며, n8n 사용법을 설명할 때 사용하며 다음 키워드에 트리거. 예: 'n8n', 'n8n 워크플로우', 'n8n 자동화', '워크플로우 목록 보여줘', '이 워크플로우 정보 알려줘', '워크플로우 만들어줘', '이 워크플로우 수정해줘', '실행이 실패한 원인 찾아줘', '운영 리포트 만들어줘', '주간 리포트 만들어줘', 'n8n 노드 사용법 알려줘'."
 ---
 
 # n8n 워크플로우 자동화 스킬
@@ -14,6 +14,7 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 |------|-----------|
 | 생성/수정/이름 정리 | [references/workflow-builder.md](references/workflow-builder.md) |
 | 에러 분석 | [references/ops-manager.md](references/ops-manager.md) |
+| 주간 운영 리포트 작성·Slack 전송 | [references/ops-report.md](references/ops-report.md) |
 | 사용법 설명/교육 | [references/teaching-guide.md](references/teaching-guide.md) |
 | 복합 요청 | 해당 모듈 복수로드 (우선순위: ops-manager → builder → teaching) |
 
@@ -26,6 +27,7 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 > - "Slack 알림 워크플로우 만들어줘"
 > - "전체 워크플로우 이름 컨벤션 정리해줘"
 > - "에러 리포트 보여줘"
+> - "이번 주 운영 리포트 만들어줘"
 > - "워크플로우 연결해줘"
 
 ## 안전 확인
