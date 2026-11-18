@@ -1,5 +1,10 @@
 # 아키텍처
 
+| 항목 | 값 |
+| --- | --- |
+| 문서 버전 | 0.8.0 |
+| 최종 수정 | 2026-11-18 |
+
 이 프로젝트를 이루는 서비스와 그 연결 관계, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
 
 ## 시스템 구성도
@@ -9,9 +14,9 @@
 핵심은 n8n, PostgreSQL, n8n-mcp 다. n8n-admin 은 없어도 나머지가 그대로 동작하는 부가 도구라 점선으로 옆에 두었다.
 
 ```text
-┌──────────────────────────────────────── 로컬 PC ─────────────────────────────────────────┐
+┌─────────────────────────────────── workflow-with-n8n ────────────────────────────────────┐
 │                                                                                          │
-│  브라우저 ───────────────────────────────────────┬ ─ ─ ─ :50999  ─ ─ ─ ─ ─ ┐             │
+│  브라우저 ───────────────────────────────────────┬ ─ ─ ─ :3000   ─ ─ ─ ─ ─ ┐             │
 │                                                  │                         ▼             │
 │  Claude Code                                     │              ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐  │
 │       │ stdio                                    │              ╎      n8n-admin      ╎  │
@@ -19,13 +24,13 @@
 │  ┌──────────┐           REST API                 │              └─ ─ ─ ─ ─ ┬ ─ ─ ─ ─ ─┘  │
 │  │ n8n-mcp  │───────────────────────────────────▶│◀ ─ ─  REST API ─ ─ ─ ─ ─┘             │
 │  └──────────┘                                    │                                       │
-│                                                  │ :50990 (UI·웹훅·폼·API)               │
+│                                                  │ :5678 (UI·웹훅·폼·API)                │
 │                                                  ▼                                       │
 │  ┌───────────── Docker (네트워크 n8n_default) ──────────────┐                            │
 │  │                                                          │                            │
 │  │  ┌──────────────────┐  postgres:5432   ┌──────────────┐  │                            │
 │  │  │   n8n-postgres   │◀─────────────────│     n8n      │  │                            │
-│  │  │ 호스트 포트 없음 │                  │ :50990 공개  │  │                            │
+│  │  │ 호스트 포트 없음 │                  │ :5678 공개   │  │                            │
 │  │  └──────────────────┘                  └──────────────┘  │                            │
 │  │  볼륨 n8n_postgres_data          볼륨 n8n_data           │                            │
 │  │  (워크플로우·실행 기록 등)       (암호화 키·이벤트 로그) │                            │
@@ -42,21 +47,21 @@
 
 | 서비스 | 역할 | 실행 방식 | 포트 | 버전 |
 |--------|------|-----------|------|------|
-| n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 50990 | 2.44.7 |
+| n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 5678 | 2.44.7 |
 | PostgreSQL | n8n 데이터 저장 | Docker 컨테이너 `n8n-postgres` | 없음 (Docker 내부 5432) | 17 |
 | n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.0 |
 | n8n-mcp-skills | n8n-mcp 사용법 스킬 묶음 | Claude Code 플러그인 | 없음 | 1.37.1 |
-| n8n-admin (부가) | 워크플로우·유저·크레덴셜 관리 대시보드 | 호스트에서 Next.js 실행 | 50999 | 1.2.0 |
+| n8n-admin (부가) | 워크플로우·유저·크레덴셜 관리 대시보드 | 호스트에서 Next.js 실행 | 3000 | 1.2.0 |
 
 - n8n 은 실행 모드 기본값(`regular`)으로 동작한다. 프로세스 하나가 화면, 웹훅, 워크플로우 실행을 모두 맡는다.
-- 포트와 버전을 바꾸는 곳은 아래 각 서비스의 "설정"에 적었다.
+- 포트는 각 서비스의 기본값으로 적었다. 포트와 버전을 바꾸는 곳은 아래 각 서비스의 "설정"에 적었다.
 
 ## 연결 관계
 
 | 출발 | 도착 | 방식 | 인증 |
 |------|------|------|------|
-| 브라우저 | n8n | HTTP `localhost:50990` | n8n 계정 로그인 |
-| 브라우저 | n8n-admin | HTTP `localhost:50999` | `ADMIN_PASSWORD` |
+| 브라우저 | n8n | HTTP `localhost:5678` | n8n 계정 로그인 |
+| 브라우저 | n8n-admin | HTTP `localhost:3000` | `ADMIN_PASSWORD` |
 | n8n-admin | n8n | n8n 공개 API (`/api/v1`) | n8n API 키 |
 | Claude Code | n8n-mcp | stdio (프로세스 직접 실행) | 없음 |
 | n8n-mcp | n8n | n8n 공개 API (`/api/v1`) | n8n API 키 |
@@ -163,7 +168,7 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 
 ```bash
 cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력
-bin/n8n.sh start                                 # http://localhost:50990
+bin/n8n.sh start                                 # http://localhost:5678
 ```
 
 처음 접속하면 관리자 계정을 만든다. 이어서 **Settings > n8n API** 에서 API 키를 만들어 `.env` 의 `N8N_API_KEY` 에 넣는다.
@@ -210,7 +215,7 @@ Claude Code 안에서 실행한다.
 git submodule update --init                                  # 서브모듈 받기
 cd services/n8n-admin/admin && pnpm install && cd -          # 의존성 설치
 cp services/n8n-admin/.env.example services/n8n-admin/.env   # 값 입력
-bin/n8n-admin.sh start                                       # http://localhost:50999
+bin/n8n-admin.sh start                                       # http://localhost:3000
 ```
 
 외부 리포지토리이므로 내부 파일은 수정하지 않는다. 업데이트 확인과 반영 방법은 README 7장에 있다.

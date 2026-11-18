@@ -7,6 +7,7 @@
 | 문서 | 내용 |
 |------|------|
 | [README.md](README.md) | 설치, 실행, 설정, 디렉터리 구조 |
+| [CHANGELOG.md](CHANGELOG.md) | 버전별 변경 기록 |
 | [docs/architecture.md](docs/architecture.md) | 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법 |
 | [docs/logging.md](docs/logging.md) | 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인 |
 | [docs/code-style.md](docs/code-style.md) | 코드 스타일 (초안) |
@@ -22,10 +23,10 @@
 | 항목 | 값 |
 |------|----|
 | 실행 위치 | 로컬 PC (macOS, Docker Desktop) |
-| n8n | Docker Compose, `http://localhost:50990` — 설정은 `services/n8n/.env` |
+| n8n | Docker Compose, `http://localhost:5678` — 설정은 `services/n8n/.env` |
 | DB | PostgreSQL 17 (`n8n-postgres` 컨테이너, 호스트 포트 미개방) |
 | n8n-mcp | Claude Code가 `.mcp.json`으로 실행 (stdio, 포트 없음) |
-| n8n-admin | 관리 대시보드, `http://localhost:50999` — git 서브모듈, 설정은 `services/n8n-admin/.env` |
+| n8n-admin | 관리 대시보드, `http://localhost:3000` — git 서브모듈, 설정은 `services/n8n-admin/.env` |
 
 버전은 `services/n8n/.env.example`의 `N8N_VERSION`과 `services/n8n-mcp/package.json`에 고정한다.
 
@@ -69,8 +70,9 @@ root
 - `develop`: 개발 통합 브랜치 (아직 없음 — 만들기 전까지 feature 브랜치는 main에서 분기하고 main으로 병합)
 - `feature/{서비스명}/{작업명}`: 기능 개발 브랜치 (develop에서 분기)
   - 서비스명: `services/` 아래 디렉터리 이름 (예: `n8n`, `n8n-mcp`, `n8n-admin`)
+  - 특정 서비스에 속하지 않는 작업(문서 등)은 서비스명 대신 작업 범위를 쓴다 (예: `docs`)
   - 작업명: 작업 내용을 나타내는 영문 소문자 이름, 단어는 하이픈으로 연결 (예: `rules`, `stock-screener`)
-  - 예시: `feature/n8n/rules`, `feature/n8n/stock-screener`
+  - 예시: `feature/n8n/rules`, `feature/n8n/stock-screener`, `feature/docs/readme-fix`
 - 병합은 병합 커밋을 남긴다 (`git merge --no-ff`)
 - `bugfix/*`: 긴급 수정 (main에서 분기)
 - `hotfix/*`: 긴급 수정 (main에서 분기)
@@ -85,6 +87,11 @@ subject: 한글 또는 영문, 50자 이내
 ```
 
 예시: `feat: 이메일 발송 자동화 추가`, `fix: 스케줄러 타임존 오류 수정`
+
+### 버전 태그·PR
+
+- `main`에 병합될 때마다 병합 커밋에 SemVer 태그(`v<MAJOR>.<MINOR>.<PATCH>`)를 붙인다. 올리는 기준과 명령은 [docs/code-style.md](docs/code-style.md) '버전 태그'를 따른다.
+- PR 제목·본문 형식은 [docs/code-style.md](docs/code-style.md) 'PR 메시지'를 따른다.
 
 ## 출력 언어
 
