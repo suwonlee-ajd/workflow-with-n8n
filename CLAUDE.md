@@ -13,6 +13,7 @@
 | [docs/code-style.md](docs/code-style.md) | 코드 스타일 (작성 전) |
 | [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md) | n8n 작업에 항상 적용하는 규칙 |
 | [.claude/skills/n8n/SKILL.md](.claude/skills/n8n/SKILL.md) | n8n 워크플로우 생성·운영·교육 스킬 |
+| [.claude/skills/n8n-ops-report/SKILL.md](.claude/skills/n8n-ops-report/SKILL.md) | 주간 운영 리포트 작성·Slack 전송 스킬 |
 
 ## HARD RULES
 
