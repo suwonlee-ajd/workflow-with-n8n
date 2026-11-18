@@ -1,6 +1,15 @@
 # n8n + claude code 환경 Docker 설정
 
-이 프로젝트는 [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)에 맞춰 한국 표준시(KST) 및 UTF-8 한글 문자 인코딩을 최적화한 Docker Compose 환경입니다.
+![License](https://img.shields.io/github/license/suwonlee-ajd/workflow-with-n8n)
+![Stars](https://img.shields.io/github/stars/suwonlee-ajd/workflow-with-n8n)
+![Docker Compose](https://img.shields.io/badge/Docker%20Compose-required-2496ED?logo=docker&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-2.44.7-EA4B71?logo=n8n&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-n8n--mcp%202.103.0-D97757?logo=claude&logoColor=white)
+![Node](https://img.shields.io/badge/node-%5E22.23%20%7C%20%5E24.22%20%7C%20%3E%3D26.12-brightgreen?logo=nodedotjs&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-required%20%28n8n--admin%29-orange?logo=pnpm&logoColor=white)
+
+Docker Compose로 n8n과 PostgreSQL을 띄우고, Claude Code가 n8n-mcp로 워크플로우를 만들고 운영하는 프로젝트입니다.
 
 ---
 
@@ -123,7 +132,7 @@ bin/n8n.sh import
 
 ### 4. 버전 업그레이드
 1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
-2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 도 함께)
+2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 과 README 의 버전 표기·뱃지도 함께)
 3. `bin/n8n.sh restart` — 새 버전 이미지는 자동으로 pull 됨
 
 > **n8n 3.0 주의** (stable 2026-12 초 예정): npm 설치 지원 종료(Docker 필수), Function·Item Lists·Cron 등 레거시 노드 삭제, 암호화 키 로테이션 기본 활성화 등 breaking change 가 있습니다.
@@ -152,6 +161,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
    cd services/n8n-mcp && npm ci
    ```
    버전은 `package.json` 에 고정. 올릴 때는 버전을 바꾸고 `npm install` 후 Claude Code 세션을 새로 시작합니다.
+   README 맨 위 뱃지의 n8n-mcp 버전과 Node 요구 버전(`node_modules/n8n-mcp/package.json` 의 `engines`)도 함께 고칩니다.
 2. **API 키**: n8n 화면 **Settings > n8n API** 에서 키를 만들어 `services/n8n/.env` 의 `N8N_API_KEY` 에 넣습니다.
    `.mcp.json` 은 서버를 띄울 때 이 값을 `.env` 에서 읽으므로 `.mcp.json` 에는 비밀값이 없습니다.
 3. **연결 확인**: `.mcp.json` 은 세션 시작 때만 읽힙니다. Claude Code 를 새로 열고 프로젝트 MCP 서버(`n8n-mcp`) 사용을 승인한 뒤 `/mcp` 로 연결 상태를 확인합니다.
@@ -227,6 +237,8 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 
 ## 💡 한글 관련 실무 팁 (가이드 핵심 내용)
 
+[참조](#-참조)의 EddyGlen n8n 한글 설정 가이드에서 실무에 필요한 내용만 정리했습니다.
+
 ### 1. UI 언어와 시스템 설정의 차이
 - n8n 공식 웹 UI는 기본적으로 영문으로 제공됩니다.
 - 가이드에서 다루는 "한글 설정"은 **시간(타임존)과 데이터 문자열(인코딩)이 깨지지 않도록 시스템 환경을 한국어화**하는 것입니다.
@@ -256,3 +268,19 @@ return {
 const now = $now.setZone('Asia/Seoul');
 const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 ```
+
+---
+
+## 📚 참조
+
+| 자료 | 내용 |
+|---|---|
+| [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/) | 한국 표준시(KST)·UTF-8 한글 문자 인코딩 설정의 기준. '💡 한글 관련 실무 팁'의 출처 |
+| [n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases) | 워크플로우 엔진. stable 릴리스 버전으로 고정 |
+| [n8n v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes) | 3.0 업그레이드 전 확인 사항 (4장) |
+| [postgres 공식 이미지](https://hub.docker.com/_/postgres) · [PostgreSQL 17 문서](https://www.postgresql.org/docs/17/) | n8n DB (5장) |
+| [czlonkowski/n8n-mcp](https://github.com/czlonkowski/n8n-mcp) | Claude Code 용 n8n MCP 서버 (6장) |
+| [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills) | `n8n-mcp-skills` 플러그인 (6장) |
+| [team-datapopcorn/n8n-admin](https://github.com/team-datapopcorn/n8n-admin) | 관리 대시보드, git 서브모듈 (7장) |
+
+서비스별 설치 방법은 [docs/architecture.md](docs/architecture.md) '서비스별 출처와 설치'를 참고합니다.
