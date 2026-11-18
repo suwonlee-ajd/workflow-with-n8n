@@ -8,7 +8,7 @@
 |------|---------|-----------|-----------|
 | n8n 프로세스 로그 | Docker `json-file` 드라이버 (컨테이너 표준 출력) | 컨테이너를 지우면 사라짐 | `bin/n8n.sh logs`, `docker logs n8n` |
 | PostgreSQL 로그 | Docker `json-file` 드라이버 | 컨테이너를 지우면 사라짐 | `docker logs n8n-postgres` |
-| 저장된 컨테이너 로그 | `data/logs/<컨테이너>_<시각>.log` | 남음 | 파일 열람 |
+| 로그 파일 (중지·재시작 때 기록) | `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` | 남음 | 파일 열람 |
 | n8n 이벤트 로그 | `n8n_data` 볼륨의 `n8nEventLog*.log` | 남음 | 컨테이너 안에서 열람 |
 | 워크플로우 실행 기록 | PostgreSQL | 남음 | n8n 화면의 Executions |
 | n8n-admin 대시보드 | 실행한 터미널의 표준 출력 | 남지 않음 | 실행한 터미널 |
@@ -33,9 +33,9 @@
 - 이 설정은 컨테이너를 만들 때 정해진다. 값을 바꾼 뒤에는 `bin/n8n.sh restart` 로 컨테이너를 다시 만들어야 적용된다.
 - 2026-11 기준 하루에 쌓이는 양은 n8n 약 8.5KB, PostgreSQL 약 45KB 다. 50MB 를 채우려면 몇 년이 걸린다.
 
-### 일수 기준 롤링은 없다
+### Docker 에는 일수 기준 롤링이 없다
 
-Docker 의 `json-file`·`local` 드라이버는 크기와 파일 수로만 로그를 돌린다. 날짜별로 파일을 나누거나 며칠 지난 로그를 지우는 옵션은 없다.
+Docker 의 `json-file`·`local` 드라이버는 크기와 파일 수로만 로그를 돌린다. 날짜별로 파일을 나누거나 며칠 지난 로그를 지우는 옵션은 없다. 파일로 남기는 방법은 아래 '로그 파일 기록'에 있다.
 
 n8n 의 파일 로그(`N8N_LOG_OUTPUT=file`)도 크기와 파일 수 기준이라 사정이 같다.
 
@@ -51,19 +51,26 @@ docker logs n8n-postgres                          # PostgreSQL
 
 `-t` 로 붙는 타임스탬프는 UTC 다. KST 는 9시간을 더한다.
 
-## 중지·재시작 때 로그 저장
+## 로그 파일 기록
 
-컨테이너를 지우면 Docker 로그도 함께 지워진다. `bin/n8n.sh` 의 `stop` 과 `restart` 는 컨테이너를 지우므로, 지우기 직전에 로그를 파일로 남긴다.
+로깅은 Docker 가 맡는다. `bin/n8n.sh` 는 컨테이너를 지우기 전에 Docker 가 보관하던 로그를 파일로 옮겨 적기만 한다. 백업(`data/backups/`)과는 별개이며, 로그는 `logs/` 아래에만 둔다.
 
-1. `compose stop` 으로 컨테이너를 멈춘다. 종료 과정의 로그까지 담기 위해 먼저 멈춘다.
-2. 두 컨테이너의 로그를 `data/logs/` 에 저장한다.
-3. `compose down` 으로 컨테이너를 지운다. `restart` 는 이어서 다시 띄운다.
+```text
+logs/
+└── 2026/                              # 연도
+    └── 2026.11/                       # 연.월
+        ├── n8n.2026-11-18.log         # <서비스명>.<기록한 날짜>.log
+        └── n8n-postgres.2026-11-18.log
+```
 
-- 파일 이름: `data/logs/n8n_<YYYYMMDD_HHMMSS>.log`, `data/logs/n8n-postgres_<YYYYMMDD_HHMMSS>.log`
-- 줄마다 타임스탬프(UTC)가 붙는다.
-- 컨테이너가 없거나 저장에 실패해도 중지·재시작은 계속 진행한다.
-- 저장된 파일은 자동으로 지우지 않는다. 필요하면 직접 정리한다.
-- `data/` 는 `.gitignore` 대상이라 커밋되지 않는다.
+- 경로: `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log`. 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)이다.
+- 기록되는 때: `bin/n8n.sh stop`·`restart`. 컨테이너를 멈추고(`compose stop`) 로그를 기록한 뒤 컨테이너를 지운다(`compose down`). 종료 과정의 로그까지 담긴다.
+- 파일 이름의 날짜는 **기록한 날**이다. 파일에는 그 컨테이너가 만들어진 뒤부터 쌓인 로그가 모두 들어가므로, 며칠 떠 있던 컨테이너라면 이전 날짜의 로그도 같은 파일에 있다.
+- 같은 날 다시 기록하면 같은 파일 뒤에 이어 쓴다.
+- 줄마다 Docker 가 붙인 타임스탬프(UTC)가 있다. KST 는 9시간을 더한다.
+- 컨테이너가 없거나 기록에 실패해도 중지·재시작은 계속 진행한다.
+- 로그 파일은 자동으로 지우지 않는다. 오래된 것은 연·월 폴더 단위로 직접 정리한다.
+- `logs/` 는 `.gitignore` 대상이라 커밋되지 않는다. 저장 위치는 `bin/n8n.sh` 의 `LOG_DIR` 로 바꾼다.
 
 ## 로그가 남는 경우와 사라지는 경우
 
@@ -71,21 +78,21 @@ docker logs n8n-postgres                          # PostgreSQL
 
 | 상황 | 컨테이너 | 로그 | 이후 |
 |------|----------|------|------|
-| `bin/n8n.sh stop`·`restart` | 삭제 | `data/logs/` 에 저장됨 | — |
+| `bin/n8n.sh stop`·`restart` | 삭제 | `logs/` 에 기록됨 | — |
 | n8n 프로세스가 죽음 (오류, 메모리 부족) | 남음 | 유지 | Docker 가 같은 컨테이너를 자동으로 다시 띄움 |
 | `docker stop`·`docker kill` 로 직접 멈춤 | 남음 | 유지 | 자동으로 다시 뜨지 않음. `bin/n8n.sh start` 로 재개 |
 | Docker Desktop 종료, Mac 재부팅 | 남음 | 유지 | Docker 가 켜지면 다시 뜸 |
 | 전원 차단 | 남음 | 마지막 몇 줄이 빠질 수 있음 | Docker 가 켜지면 다시 뜸 |
-| `bin/n8n.sh stop` 도중 중단 (Ctrl+C) | 멈춘 채 남음 | 유지 | `stop` 을 다시 실행하면 저장됨 |
-| 설정을 바꾼 뒤 `bin/n8n.sh start` | 새로 만들어짐 | **저장 없이 사라짐** | 설정 변경 후에는 `restart` 를 쓴다 |
-| `docker compose down`·`docker rm -f` 직접 실행 | 삭제 | **저장 없이 사라짐** | 복구 불가 |
-| Docker Desktop 데이터 초기화 | 삭제 | **저장 없이 사라짐** | 복구 불가 |
+| `bin/n8n.sh stop` 도중 중단 (Ctrl+C) | 멈춘 채 남음 | 유지 | `stop` 을 다시 실행하면 기록됨 |
+| 설정을 바꾼 뒤 `bin/n8n.sh start` | 새로 만들어짐 | **기록 없이 사라짐** | 설정 변경 후에는 `restart` 를 쓴다 |
+| `docker compose down`·`docker rm -f` 직접 실행 | 삭제 | **기록 없이 사라짐** | 복구 불가 |
+| Docker Desktop 데이터 초기화 | 삭제 | **기록 없이 사라짐** | 복구 불가 |
 
-남아 있던 로그는 다음 `stop`·`restart` 때 이전 기록까지 한꺼번에 저장된다.
+Docker 에 남아 있던 로그는 다음 `stop`·`restart` 때 이전 날짜분까지 한꺼번에 기록된다.
 
 ## 강제 종료 확인
 
-강제 종료되면 저장 단계는 실행되지 않지만, 컨테이너가 남아 있으므로 흔적을 확인할 수 있다.
+강제 종료되면 로그 기록 단계는 실행되지 않지만, 컨테이너가 남아 있으므로 흔적을 확인할 수 있다.
 
 ```bash
 docker inspect -f '재시작={{.RestartCount}} 메모리부족={{.State.OOMKilled}} 종료코드={{.State.ExitCode}} 직전종료={{.State.FinishedAt}}' n8n
@@ -102,7 +109,7 @@ docker logs -t n8n | grep -n "Initializing n8n process"    # 프로세스가 시
 n8n 이 워크플로우 실행 등의 내부 이벤트를 `n8n_data` 볼륨의 `/home/node/.n8n/n8nEventLog*.log` 에 자동으로 쓴다. 비정상 종료 뒤 실행 상태를 복구하는 데 쓰이는 파일이다.
 
 - 볼륨에 있어 컨테이너를 지워도 남는다.
-- `bin/n8n.sh backup` 의 볼륨 백업(`n8n_backup_<시각>.tar.gz`)에 포함된다.
+- 볼륨 안의 파일이라 `logs/` 에는 기록되지 않는다. 대신 `bin/n8n.sh backup` 의 볼륨 백업에 포함된다.
 - n8n 이 파일을 돌려 가며 보관하므로 따로 정리하지 않는다.
 
 ## n8n 로그 설정 변수 (현재 미사용)
@@ -119,10 +126,10 @@ n8n 이 워크플로우 실행 등의 내부 이벤트를 `n8n_data` 볼륨의 `
 | `N8N_LOG_FILE_COUNT_MAX` | `100` | 보관할 파일 수 |
 
 - `N8N_LOG_OUTPUT` 은 폴더 이름이 아니다. `logs` 처럼 `console`·`file` 이 아닌 값을 넣으면 오류 없이 로그가 아무 데도 남지 않는다.
-- 파일 로그를 켤 때는 `console,file` 로 둔다. `console` 을 빼면 `bin/n8n.sh logs` 와 `data/logs/` 저장분에 n8n 로그가 나오지 않는다.
+- 파일 로그를 켤 때는 `console,file` 로 둔다. `console` 을 빼면 `bin/n8n.sh logs` 와 `logs/` 의 로그 파일에 n8n 로그가 나오지 않는다.
 - 파일 로그는 `n8n_data` 볼륨에 쌓인다. 호스트 폴더에서 보려면 compose 에 볼륨 연결을 추가해야 한다.
 
 ## n8n-admin, n8n-mcp
 
-- **n8n-admin 대시보드**: `bin/n8n-admin.sh start` 를 실행한 터미널에만 출력된다. 파일로 남기려면 `bin/n8n-admin.sh start > data/logs/n8n-admin.log 2>&1` 처럼 직접 넘긴다.
+- **n8n-admin 대시보드**: `bin/n8n-admin.sh start` 를 실행한 터미널에만 출력된다. 파일로 남기려면 같은 규칙의 경로로 직접 넘긴다. 예: `bin/n8n-admin.sh start > logs/2026/2026.11/n8n-admin.2026-11-18.log 2>&1` (폴더는 먼저 만든다).
 - **n8n-mcp**: Claude Code 가 stdio 로 실행하는 프로세스라 로그 파일이 없다. 연결 상태는 Claude Code 의 `/mcp` 와 `n8n_health_check` 도구로 확인한다.

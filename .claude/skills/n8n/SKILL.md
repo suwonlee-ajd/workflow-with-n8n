@@ -93,9 +93,10 @@ validate_workflow(JSON 사전 검증) → n8n_create_workflow(생성) → n8n_te
   - 스냅샷이 없는 워크플로우(UI에서 만들거나 import한 것)는 수정·삭제 전 아래 단일 워크플로우 백업 실행
 - 단일 워크플로우 백업 (`bin/n8n.sh export`는 실행마다 폴더를 비우고 다시 쓰므로 백업용으로 쓰지 않음)
   ```bash
-  mkdir -p data/backups/workflows
+  DIR="data/backups/$(date +%Y%m%d)/n8n/workflows"   # data/backups/<날짜>/<서비스명>/ 규칙
+  mkdir -p "$DIR"
   docker exec n8n n8n export:workflow --id=<ID> --output=/tmp/backup-<ID>.json
-  docker cp n8n:/tmp/backup-<ID>.json data/backups/workflows/<ID>_$(date +%Y%m%d-%H%M%S).json
+  docker cp n8n:/tmp/backup-<ID>.json "$DIR/<ID>_$(date +%Y%m%d_%H%M%S).json"
   docker exec n8n rm -f /tmp/backup-<ID>.json
   ```
   - 복원: README 3장의 단일 파일 import 사용 (`bin/n8n.sh import`는 폴더 전체를 덮어쓰고 모두 비활성화하므로 사용하지 않음). 복원된 워크플로우는 비활성 상태

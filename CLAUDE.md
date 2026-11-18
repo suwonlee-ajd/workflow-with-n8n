@@ -7,8 +7,8 @@
 | 문서 | 내용 |
 |------|------|
 | [README.md](README.md) | 설치, 실행, 설정, 디렉터리 구조 |
-| [docs/architecture.md](docs/architecture.md) | 서비스 구성도, 연결 관계, 서비스별 출처와 설치 방법 |
-| [docs/logging.md](docs/logging.md) | 로그가 남는 곳, 보관, 강제 종료 확인 |
+| [docs/architecture.md](docs/architecture.md) | 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법 |
+| [docs/logging.md](docs/logging.md) | 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인 |
 | [docs/n8n-ops-report-format.md](docs/n8n-ops-report-format.md) | 주간 운영 리포트 메시지 포맷 |
 | [docs/code-style.md](docs/code-style.md) | 코드 스타일 (작성 전) |
 | [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md) | n8n 작업에 항상 적용하는 규칙 |
@@ -36,9 +36,10 @@
 root
 ├── bin/                # 쉘, 바이너리 등 전체 제어 스크립트
 ├── config/**           # DB, 앱 등 yaml, properties, toml 등 설정 파일
-├── data/**             # 백업, 로그 등 실행 결과물 (git 제외)
+├── data/**             # 백업 등 실행 결과물 (git 제외)
 ├── deploy/*            # 서버 기준 systemctl 등 서비스 등록 파일
 ├── docs/**             # 프로젝트 관련 문서
+├── logs/**             # 로그 파일 (git 제외)
 ├── services/**         # 서비스별 앱 Layer
 ├── tests/**            # 단위/통합 테스트 Layer
 └── README.md           # 프로젝트 개요 및 설명
