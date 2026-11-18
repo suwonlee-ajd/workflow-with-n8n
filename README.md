@@ -19,7 +19,7 @@ root
 ├── services/n8n-admin/              # n8n 관리 대시보드 — 외부 리포지토리를 git 서브모듈로 연결 (7장 참고)
 ├── .gitmodules                      # 서브모듈 등록 정보 (n8n-admin 원격 주소)
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
-├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n, skills/n8n-ops-report)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)
+├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)
 ├── data/backups/<날짜>/<서비스명>/  # 백업 (git 제외). 날짜는 YYYYMMDD, 서비스명은 n8n·n8n-postgres
 │                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
 │                                    #   n8n-postgres/  DB 덤프 *.sql.gz
@@ -27,7 +27,6 @@ root
 ├── docs/                            # 프로젝트 관련 문서
 │   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
 │   ├── logging.md                   # 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인
-│   ├── n8n-ops-report-format.md     # 주간 운영 리포트 메시지 포맷
 │   └── code-style.md                # 코드 스타일 (작성 전)
 ├── CLAUDE.md                        # Claude Code 프로젝트 규칙
 └── README.md
