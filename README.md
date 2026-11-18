@@ -29,9 +29,10 @@ root
 ├── .gitmodules                      # 서브모듈 등록 정보 (n8n-admin 원격 주소)
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
 ├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)
-├── data/backups/<날짜>/<서비스명>/  # 백업 (git 제외). 날짜는 YYYYMMDD, 서비스명은 n8n·n8n-postgres
+├── data/backups/<날짜>/<서비스명>/  # 백업 (git 제외). 날짜는 YYYYMMDD, 서비스명은 n8n·n8n-postgres. 위치는 .env 의 BACKUP_DIR 로 변경 가능
 │                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
 │                                    #   n8n-postgres/  DB 덤프 *.sql.gz
+├── data/backups/n8n-workflow/       # 백업 워크플로우 결과 n8n_{workflows,executions,datatables}_<시각>.json. n8n 컨테이너에 연결된 유일한 백업 폴더
 ├── logs/<YYYY>/<YYYY.MM>/           # 컨테이너 로그 파일 <서비스명>.<YYYY-MM-DD>.log (git 제외)
 ├── docs/                            # 프로젝트 관련 문서
 │   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
@@ -49,7 +50,7 @@ root
 > 모든 설정은 `services/n8n/.env` 한 곳에서 관리합니다. n8n 컨테이너는 `env_file` 로 이 파일을 그대로 읽습니다
 > (`LANG`·`TZ` 처럼 호스트 셸에도 흔히 있는 값이 `.env` 를 덮어쓰지 않도록 n8n 설정값에는 compose `${VAR}` 보간을 쓰지 않음).
 > 예외로 compose 파일 자체가 알아야 하는 값만 `${VAR}` 보간으로 받습니다: 이미지 태그(`N8N_VERSION`), 포트 매핑(`N8N_PORT`),
-> postgres·n8n 두 컨테이너가 공유하는 DB 접속 정보(`POSTGRES_*`).
+> postgres·n8n 두 컨테이너가 공유하는 DB 접속 정보(`POSTGRES_*`), 백업 폴더 연결(`BACKUP_DIR`).
 
 0. **버전 고정 (`N8N_VERSION=2.44.7`)**
    - 이미지 태그를 `latest` 대신 stable 버전으로 고정 — 컨테이너 재생성 시 의도치 않은 업그레이드·DB 마이그레이션 방지
@@ -66,6 +67,10 @@ root
    - 컨테이너를 재시작하거나 버전을 업그레이드해도 두 볼륨의 데이터는 보존됨
 4. **한국 레거시 인코딩(EUC-KR / CP949) 처리 지원**
    - `NODE_FUNCTION_ALLOW_BUILTIN=*`: Code 노드에서 Node.js 내장 `TextDecoder` 사용 가능
+5. **백업 경로 (`BACKUP_DIR`)**
+   - 비워 두면 프로젝트 루트의 `data/backups`. 다른 위치는 절대 경로로 지정
+   - `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 값을 읽음
+   - n8n 컨테이너에는 그 아래 `n8n-workflow/` 만 연결 (백업 워크플로우의 저장 위치). 볼륨 백업·DB 덤프는 컨테이너에서 보이지 않음
 
 ---
 
@@ -94,7 +99,7 @@ bin/n8n.sh logs
 # 컨테이너 상태 확인
 bin/n8n.sh status
 
-# 백업 → data/backups/<날짜>/ (n8n 이 실행 중이어야 함)
+# 백업 → <BACKUP_DIR>/<날짜>/ (BACKUP_DIR 기본값 data/backups, n8n 이 실행 중이어야 함)
 #   n8n/           n8n_data 볼륨(*.tar.gz), 워크플로우 JSON(n8n_workflows_<시각>/)
 #   n8n-postgres/  PostgreSQL 덤프(*.sql.gz)
 bin/n8n.sh backup
@@ -118,6 +123,7 @@ bin/n8n.sh import
 > 현재 저장소에는 내보낸 워크플로우 JSON 이 없습니다 (`services/n8n/workflows/` 폴더 없음). 워크플로우 원본은 n8n DB 에만 있으므로 보존은 `bin/n8n.sh backup` 으로 합니다.
 > `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<날짜>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
 > 백업한 JSON 하나를 되돌릴 때는 아래 '파일 하나만 가져올 때' 명령에 그 파일 경로를 넣습니다.
+> 터미널 없이 n8n 화면에서 백업하려면 `[메인] 운영: n8n 데이터 백업` 워크플로우를 실행합니다. 워크플로우·실행 기록·데이터 테이블을 `<BACKUP_DIR>/n8n-workflow/` 에 실행 시각을 붙인 JSON 파일 3개로 남깁니다 (크레덴셜·암호화 키·DB 전체는 `bin/n8n.sh backup` 만 백업).
 > git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.
 
 - `export`: 워크플로우 1개당 `<워크플로우 ID>.json` 1개. 폴더의 기존 JSON 을 비우고 통째로 교체하므로 n8n 에서 지운 워크플로우는 파일에서도 사라짐

@@ -143,7 +143,8 @@ esac
 | 용도 | 형식 |
 |------|------|
 | 실행 시각 스탬프 | `%Y%m%d_%H%M%S` (예: `20261118_151900`) |
-| 백업 | `data/backups/<YYYYMMDD>/<서비스명>/` |
+| 백업 | `<BACKUP_DIR>/<YYYYMMDD>/<서비스명>/` (`BACKUP_DIR` 기본값 `data/backups`) |
+| 백업 워크플로우 | `<BACKUP_DIR>/n8n-workflow/n8n_<대상>_<YYYYMMDD_HHMMSS>.json` (하위 폴더 없음) |
 | 로그 | `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` |
 
 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)을 쓴다.
@@ -166,7 +167,9 @@ esac
 
 - `.env` 와 키 구성을 같게 유지. 키를 추가하거나 바꾸면 두 파일과 README 를 함께 고침
 - 맨 위 블록: 용도, 사용 순서, 표기 규칙(`★` = 직접 입력할 비밀값)
-- 구역마다 번호 주석 `# N. 제목 — 요약`, 키마다 위 줄에 설명
+- 구역: `# ====` 로 감싼 번호 제목 (`0. 기본 설정`, `1. n8n 설정`, `2. DB 설정`). 항목마다 위 줄에 `# 제목 — 요약` 설명
+- 줄끝 주석은 compose 만 읽는 키에만 (`GENERIC_TIMEZONE`, `TZ`)
+  - `bin/n8n.sh`·`.mcp.json` 이 직접 읽는 키(`N8N_PORT`, `BACKUP_DIR`, `N8N_API_KEY`)에는 쓰지 않음: 주석까지 값으로 읽힘
 - 비밀값은 빈 값으로 두고 `★` 와 생성 방법 표시 (`openssl rand -hex 16`)
 - 값은 따옴표 없이. 키 이름은 n8n·PostgreSQL 이 정한 이름 그대로
 
