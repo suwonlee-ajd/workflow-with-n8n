@@ -32,7 +32,7 @@ root
 ├── data/backups/<날짜>/<서비스명>/  # 백업 (git 제외). 날짜는 YYYYMMDD, 서비스명은 n8n·n8n-postgres. 위치는 .env 의 BACKUP_DIR 로 변경 가능
 │                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
 │                                    #   n8n-postgres/  DB 덤프 *.sql.gz
-├── data/backups/n8n-workflow/       # 백업 워크플로우 결과 n8n_{workflows,executions,datatables}_<시각>.json. n8n 컨테이너에 연결된 유일한 백업 폴더
+├── data/backups/n8n-workflow/       # 백업 워크플로우 결과 (매일 18:00). 워크플로우마다 n8n_workflow_<시각>_<ID>.json, 실행 기록·데이터 테이블은 n8n_{executions,datatables}_<시각>.json. n8n 컨테이너에 연결된 유일한 백업 폴더
 ├── logs/<YYYY>/<YYYY.MM>/           # 컨테이너 로그 파일 <서비스명>.<YYYY-MM-DD>.log (git 제외)
 ├── docs/                            # 프로젝트 관련 문서
 │   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
@@ -123,7 +123,9 @@ bin/n8n.sh import
 > 현재 저장소에는 내보낸 워크플로우 JSON 이 없습니다 (`services/n8n/workflows/` 폴더 없음). 워크플로우 원본은 n8n DB 에만 있으므로 보존은 `bin/n8n.sh backup` 으로 합니다.
 > `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<날짜>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
 > 백업한 JSON 하나를 되돌릴 때는 아래 '파일 하나만 가져올 때' 명령에 그 파일 경로를 넣습니다.
-> 터미널 없이 n8n 화면에서 백업하려면 `[메인] 운영: n8n 데이터 백업` 워크플로우를 실행합니다. 워크플로우·실행 기록·데이터 테이블을 `<BACKUP_DIR>/n8n-workflow/` 에 실행 시각을 붙인 JSON 파일 3개로 남깁니다 (크레덴셜·암호화 키·DB 전체는 `bin/n8n.sh backup` 만 백업).
+> 터미널 없이도 `[메인] 운영: n8n 데이터 백업` 워크플로우가 매일 18:00 에 자동으로 백업합니다. n8n 화면에서 수동으로 실행해도 됩니다.
+> `<BACKUP_DIR>/n8n-workflow/` 에 실행 시각을 붙인 JSON 파일로 남깁니다: 워크플로우마다 1개(`n8n_workflow_<시각>_<워크플로우 ID>.json`), 실행 기록 1개, 데이터 테이블 1개 (크레덴셜·암호화 키·DB 전체는 `bin/n8n.sh backup` 만 백업). 파일은 자동으로 지워지지 않습니다.
+> 18:00 에 Mac 이 절전 중이면 그날 백업은 건너뜁니다. n8n 이 Mac 의 Docker 에서 돌고, 스케줄러가 놓친 실행을 다시 돌리지 않기 때문입니다.
 > git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.
 
 - `export`: 워크플로우 1개당 `<워크플로우 ID>.json` 1개. 폴더의 기존 JSON 을 비우고 통째로 교체하므로 n8n 에서 지운 워크플로우는 파일에서도 사라짐

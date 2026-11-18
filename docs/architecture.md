@@ -79,7 +79,7 @@
 | 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n-postgres/n8n_db_<시각>.sql.gz` |
 | 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_backup_<시각>.tar.gz` |
 | 워크플로우 JSON (백업) | — | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_workflows_<시각>/<ID>.json` |
-| 워크플로우·실행 기록·데이터 테이블 JSON (백업 워크플로우) | — | `[메인] 운영: n8n 데이터 백업` 실행 → `data/backups/n8n-workflow/n8n_<대상>_<시각>.json` |
+| 워크플로우·실행 기록·데이터 테이블 JSON (백업 워크플로우) | — | `[메인] 운영: n8n 데이터 백업` 매일 18:00·수동 실행 → `data/backups/n8n-workflow/` 에 `n8n_workflow_<시각>_<ID>.json`(워크플로우마다), `n8n_executions_<시각>.json`, `n8n_datatables_<시각>.json` |
 | 워크플로우 JSON (git 이력용) | `services/n8n/workflows/` — 현재 저장소에는 없음 | 필요할 때 `bin/n8n.sh export` 로 만들어 커밋 |
 | 컨테이너 로그 | Docker, 그리고 `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` | 백업 대상 아님. [logging.md](logging.md) 참고 |
 | 비밀값 | `services/n8n/.env`, `services/n8n-admin/.env` | git 제외. 따로 보관 |

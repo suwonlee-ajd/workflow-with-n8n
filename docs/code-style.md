@@ -144,7 +144,7 @@ esac
 |------|------|
 | 실행 시각 스탬프 | `%Y%m%d_%H%M%S` (예: `20261118_151900`) |
 | 백업 | `<BACKUP_DIR>/<YYYYMMDD>/<서비스명>/` (`BACKUP_DIR` 기본값 `data/backups`) |
-| 백업 워크플로우 | `<BACKUP_DIR>/n8n-workflow/n8n_<대상>_<YYYYMMDD_HHMMSS>.json` (하위 폴더 없음) |
+| 백업 워크플로우 | `<BACKUP_DIR>/n8n-workflow/` 에 `n8n_workflow_<YYYYMMDD_HHMMSS>_<워크플로우 ID>.json`(워크플로우마다), `n8n_{executions,datatables}_<YYYYMMDD_HHMMSS>.json` (하위 폴더 없음) |
 | 로그 | `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` |
 
 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)을 쓴다.
