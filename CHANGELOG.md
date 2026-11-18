@@ -2,6 +2,24 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.10.0] - 2026-11-18
+
+### 호환성
+
+- 백업 폴더 이름을 날짜 8자리에서 일시 12자리(`YYYYMMDDHHMM`)로 변경: `<BACKUP_DIR>/<YYYYMMDDHHMM>/<서비스명>/`
+- 백업 워크플로우 `[메인] 운영: n8n 데이터 백업` 도 `bin/n8n.sh backup` 과 같은 `<BACKUP_DIR>/<YYYYMMDDHHMM>/n8n/` 에 저장
+- n8n 컨테이너의 백업 폴더 연결 변경: `<BACKUP_DIR>/n8n-workflow` → `<BACKUP_DIR>` 전체를 `~/.n8n-files/backups` 로. 반영하려면 `bin/n8n.sh restart`
+- 기존 `<YYYYMMDD>/`, `n8n-workflow/` 백업은 그대로 두며 옮기지 않음
+
+### 변경
+
+- `bin/n8n.sh backup`: 실행 시각 스탬프의 앞 12자리로 폴더를 만듦. 파일 이름의 `<시각>`(`YYYYMMDD_HHMMSS`)은 그대로
+- `services/n8n/docker-compose.yml`: 백업 폴더 전체 연결, 주석 갱신
+- 백업 워크플로우의 저장 위치와 현재 결과물(볼륨 `n8n_backup_<시각>.tar.gz`, 워크플로우 JSON `n8n_workflows_<시각>/<ID>.json`, 실행 기록·데이터 테이블 JSON)을 문서에 반영 (`README.md`, `docs/architecture.md`, `docs/code-style.md`)
+- 문서: n8n 워크플로우에서 `bin/n8n.sh backup` 의 볼륨 백업·DB 덤프도 읽을 수 있음을 명시
+- `docs/code-style.md`: '날짜와 파일 위치' 에 백업 폴더 일시 형식 추가
+- n8n 스킬: 전체 백업·단일 워크플로우 백업 경로를 새 규칙으로
+
 ## [0.9.2] - 2026-11-18
 
 ### 추가
@@ -73,6 +91,7 @@
 - n8n-mcp 2.103.0 으로 업데이트
 - 스크립트·설정 주석을 코드 스타일 규칙에 맞춤 (PR #3)
 
+[0.10.0]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.8.0...v0.9.0

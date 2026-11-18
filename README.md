@@ -29,10 +29,11 @@ root
 ├── .gitmodules                      # 서브모듈 등록 정보 (n8n-admin 원격 주소)
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
 ├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)·세션 간 작업지시서(tasks/, 다 쓰면 지움)
-├── data/backups/<날짜>/<서비스명>/  # 백업 (git 제외). 날짜는 YYYYMMDD, 서비스명은 n8n·n8n-postgres. 위치는 .env 의 BACKUP_DIR 로 변경 가능
+├── data/backups/<일시>/<서비스명>/  # 백업 (git 제외). 일시는 YYYYMMDDHHMM, 서비스명은 n8n·n8n-postgres. 위치는 .env 의 BACKUP_DIR 로 변경 가능
+│                                    #   bin/n8n.sh backup 과 백업 워크플로우(매일 18:00)가 같은 규칙으로 저장. n8n 컨테이너에 폴더 전체 연결
 │                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
-│                                    #   n8n-postgres/  DB 덤프 *.sql.gz
-├── data/backups/n8n-workflow/       # 백업 워크플로우 결과 (매일 18:00). 워크플로우마다 n8n_workflow_<시각>_<ID>.json, 실행 기록·데이터 테이블은 n8n_{executions,datatables}_<시각>.json. n8n 컨테이너에 연결된 유일한 백업 폴더
+│                                    #                  실행 기록·데이터 테이블 n8n_{executions,datatables}_<시각>.json (백업 워크플로우만)
+│                                    #   n8n-postgres/  DB 덤프 *.sql.gz (bin/n8n.sh backup 만)
 ├── logs/<YYYY>/<YYYY.MM>/           # 컨테이너 로그 파일 <서비스명>.<YYYY-MM-DD>.log (git 제외)
 ├── docs/                            # 프로젝트 관련 문서
 │   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
@@ -70,7 +71,8 @@ root
 5. **백업 경로 (`BACKUP_DIR`)**
    - 비워 두면 프로젝트 루트의 `data/backups`. 다른 위치는 절대 경로로 지정
    - `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 값을 읽음
-   - n8n 컨테이너에는 그 아래 `n8n-workflow/` 만 연결 (백업 워크플로우의 저장 위치). 볼륨 백업·DB 덤프는 컨테이너에서 보이지 않음
+   - n8n 컨테이너에는 `BACKUP_DIR` 전체를 `~/.n8n-files/backups` 로 연결. 백업 워크플로우도 `bin/n8n.sh backup` 과 같은 경로에 저장
+   - 그래서 n8n 워크플로우에서 `bin/n8n.sh backup` 의 볼륨 백업·DB 덤프도 읽을 수 있음
 
 ---
 
@@ -99,7 +101,7 @@ bin/n8n.sh logs
 # 컨테이너 상태 확인
 bin/n8n.sh status
 
-# 백업 → <BACKUP_DIR>/<날짜>/ (BACKUP_DIR 기본값 data/backups, n8n 이 실행 중이어야 함)
+# 백업 → <BACKUP_DIR>/<YYYYMMDDHHMM>/ (BACKUP_DIR 기본값 data/backups, n8n 이 실행 중이어야 함)
 #   n8n/           n8n_data 볼륨(*.tar.gz), 워크플로우 JSON(n8n_workflows_<시각>/)
 #   n8n-postgres/  PostgreSQL 덤프(*.sql.gz)
 bin/n8n.sh backup
@@ -121,10 +123,11 @@ bin/n8n.sh import
 워크플로우는 DB(PostgreSQL)에 저장되므로, git 으로 이력을 남기려면 JSON 으로 내보내야 합니다. 두 명령 모두 n8n 이 실행 중이어야 합니다.
 
 > 현재 저장소에는 내보낸 워크플로우 JSON 이 없습니다 (`services/n8n/workflows/` 폴더 없음). 워크플로우 원본은 n8n DB 에만 있으므로 보존은 `bin/n8n.sh backup` 으로 합니다.
-> `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<날짜>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
+> `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<YYYYMMDDHHMM>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
 > 백업한 JSON 하나를 되돌릴 때는 아래 '파일 하나만 가져올 때' 명령에 그 파일 경로를 넣습니다.
 > 터미널 없이도 `[메인] 운영: n8n 데이터 백업` 워크플로우가 매일 18:00 에 자동으로 백업합니다. n8n 화면에서 수동으로 실행해도 됩니다.
-> `<BACKUP_DIR>/n8n-workflow/` 에 실행 시각을 붙인 JSON 파일로 남깁니다: 워크플로우마다 1개(`n8n_workflow_<시각>_<워크플로우 ID>.json`), 실행 기록 1개, 데이터 테이블 1개 (크레덴셜·암호화 키·DB 전체는 `bin/n8n.sh backup` 만 백업). 파일은 자동으로 지워지지 않습니다.
+> `bin/n8n.sh backup` 과 같은 `<BACKUP_DIR>/<YYYYMMDDHHMM>/n8n/` 에 n8n_data 볼륨(`n8n_backup_<시각>.tar.gz`, 암호화 키 포함), 워크플로우 JSON(`n8n_workflows_<시각>/<워크플로우 ID>.json`), 실행 기록·데이터 테이블(`n8n_{executions,datatables}_<시각>.json`)을 남깁니다.
+> 크레덴셜이 든 DB 덤프는 `bin/n8n.sh backup` 만 만듭니다 (n8n 컨테이너에 `pg_dump` 없음). 파일은 자동으로 지워지지 않습니다.
 > 18:00 에 Mac 이 절전 중이면 그날 백업은 건너뜁니다. n8n 이 Mac 의 Docker 에서 돌고, 스케줄러가 놓친 실행을 다시 돌리지 않기 때문입니다.
 > git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.
 
@@ -159,7 +162,7 @@ n8n 은 DB 설정이 없으면 SQLite 를 쓰지만, 이 프로젝트는 `postgr
 - `POSTGRES_*` 는 **DB 볼륨이 비어 있는 최초 기동 때만** 적용됩니다. 이후 비밀번호를 바꾸려면 DB 안에서도 바꿔야 합니다
   (`docker exec -it n8n-postgres psql -U n8n -c "ALTER USER n8n PASSWORD '<새 비밀번호>'"` → `.env` 수정 → `bin/n8n.sh restart`)
 - DB 접속: `docker exec -it n8n-postgres psql -U n8n -d n8n` (호스트 포트는 열지 않음)
-- 덤프 복원: `gunzip -c data/backups/<날짜>/n8n-postgres/n8n_db_<시각>.sql.gz | docker exec -i n8n-postgres psql -U n8n -d n8n`
+- 덤프 복원: `gunzip -c data/backups/<YYYYMMDDHHMM>/n8n-postgres/n8n_db_<시각>.sql.gz | docker exec -i n8n-postgres psql -U n8n -d n8n`
 - `N8N_BASIC_AUTH_*` 는 n8n 1.0 에서 사용자 계정 방식으로 바뀌면서 없어진 설정이라 쓰지 않습니다
 
 ### 6. Claude Code 연동 (n8n-mcp)

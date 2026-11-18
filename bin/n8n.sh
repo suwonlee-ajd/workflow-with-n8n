@@ -34,10 +34,13 @@ fi
 BACKUP_DIR="${BACKUP_DIR:-$ROOT/data/backups}"
 
 # 백업 폴더를 만들고 경로를 출력
-# - 경로: <BACKUP_DIR>/<날짜>/<서비스명>/ (서비스명은 컨테이너 이름: n8n, n8n-postgres)
+# - 경로: <BACKUP_DIR>/<일시>/<서비스명>/
+# - 일시: 시각 스탬프에서 _ 를 뺀 앞 12자리 (YYYYMMDDHHMM)
+# - 서비스명: 컨테이너 이름 (n8n, n8n-postgres)
 # - 사용: dir="$(backup_dir <서비스명> <YYYYMMDD_HHMMSS>)"
 backup_dir() {
-  local dir="$BACKUP_DIR/${2%%_*}/$1"
+  local stamp="${2/_/}"
+  local dir="$BACKUP_DIR/${stamp:0:12}/$1"
   mkdir -p "$dir"
   echo "$dir"
 }
@@ -109,7 +112,7 @@ case "$1" in
     compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"
     compose exec -T n8n n8n export:workflow --backup --output="$WORKFLOW_TMP/"
     compose cp n8n:"$WORKFLOW_TMP/." "$WF_BACKUP_DIR/"
-    echo "✅ 백업 완료: $BACKUP_DIR/${STAMP%%_*}/ (n8n/$BACKUP_FILE, n8n/n8n_workflows_${STAMP}/ $(ls "$WF_BACKUP_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')개, n8n-postgres/$DB_BACKUP_FILE)"
+    echo "✅ 백업 완료: ${N8N_BACKUP_DIR%/*}/ (n8n/$BACKUP_FILE, n8n/n8n_workflows_${STAMP}/ $(ls "$WF_BACKUP_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')개, n8n-postgres/$DB_BACKUP_FILE)"
     ;;
   export)
     echo "📤 워크플로우를 $WORKFLOW_DIR 로 내보냅니다 (크레덴셜 제외)..."

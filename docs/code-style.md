@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.9.2 |
+| 문서 버전 | 0.10.0 |
 | 최종 수정 | 2026-11-18 |
 
 이 저장소의 스크립트, 설정 파일, 문서, n8n 워크플로우, PR 메시지·버전 태그를 쓸 때 따르는 규칙이다. 현재 코드에서 실제로 쓰는 방식을 정리한 초안이며, 결정을 미룬 것은 마지막 '보류'에 모았다.
@@ -143,8 +143,9 @@ esac
 | 용도 | 형식 |
 |------|------|
 | 실행 시각 스탬프 | `%Y%m%d_%H%M%S` (예: `20261118_151900`) |
-| 백업 | `<BACKUP_DIR>/<YYYYMMDD>/<서비스명>/` (`BACKUP_DIR` 기본값 `data/backups`) |
-| 백업 워크플로우 | `<BACKUP_DIR>/n8n-workflow/` 에 `n8n_workflow_<YYYYMMDD_HHMMSS>_<워크플로우 ID>.json`(워크플로우마다), `n8n_{executions,datatables}_<YYYYMMDD_HHMMSS>.json` (하위 폴더 없음) |
+| 백업 폴더 일시 | `%Y%m%d%H%M`, 실행 시각 스탬프의 앞 12자리 (예: `202611181519`) |
+| 백업 | `<BACKUP_DIR>/<YYYYMMDDHHMM>/<서비스명>/` (`BACKUP_DIR` 기본값 `data/backups`) |
+| 백업 워크플로우 | `<BACKUP_DIR>/<YYYYMMDDHHMM>/n8n/` 에 `n8n_backup_<YYYYMMDD_HHMMSS>.tar.gz`, `n8n_workflows_<YYYYMMDD_HHMMSS>/<워크플로우 ID>.json`, `n8n_{executions,datatables}_<YYYYMMDD_HHMMSS>.json` |
 | 로그 | `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` |
 
 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)을 쓴다.
