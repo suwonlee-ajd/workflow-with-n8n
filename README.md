@@ -21,7 +21,7 @@ root
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
 ├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)
 ├── data/backups/<날짜>/<서비스명>/  # 백업 (git 제외). 날짜는 YYYYMMDD, 서비스명은 n8n·n8n-postgres
-│                                    #   n8n/           볼륨 백업 *.tar.gz, workflows/ 단일 워크플로우 백업
+│                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
 │                                    #   n8n-postgres/  DB 덤프 *.sql.gz
 ├── logs/<YYYY>/<YYYY.MM>/           # 컨테이너 로그 파일 <서비스명>.<YYYY-MM-DD>.log (git 제외)
 ├── docs/                            # 프로젝트 관련 문서
@@ -85,7 +85,9 @@ bin/n8n.sh logs
 # 컨테이너 상태 확인
 bin/n8n.sh status
 
-# 백업: n8n_data 볼륨(*.tar.gz) → data/backups/<날짜>/n8n/, PostgreSQL 덤프(*.sql.gz) → data/backups/<날짜>/n8n-postgres/
+# 백업 → data/backups/<날짜>/ (n8n 이 실행 중이어야 함)
+#   n8n/           n8n_data 볼륨(*.tar.gz), 워크플로우 JSON(n8n_workflows_<시각>/)
+#   n8n-postgres/  PostgreSQL 덤프(*.sql.gz)
 bin/n8n.sh backup
 
 # 워크플로우 내보내기 / 가져오기 (services/n8n/workflows/*.json)
@@ -105,6 +107,8 @@ bin/n8n.sh import
 워크플로우는 DB(PostgreSQL)에 저장되므로, git 으로 이력을 남기려면 JSON 으로 내보내야 합니다. 두 명령 모두 n8n 이 실행 중이어야 합니다.
 
 > 현재 저장소에는 내보낸 워크플로우 JSON 이 없습니다 (`services/n8n/workflows/` 폴더 없음). 워크플로우 원본은 n8n DB 에만 있으므로 보존은 `bin/n8n.sh backup` 으로 합니다.
+> `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<날짜>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
+> 백업한 JSON 하나를 되돌릴 때는 아래 '파일 하나만 가져올 때' 명령에 그 파일 경로를 넣습니다.
 > git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.
 
 - `export`: 워크플로우 1개당 `<워크플로우 ID>.json` 1개. 폴더의 기존 JSON 을 비우고 통째로 교체하므로 n8n 에서 지운 워크플로우는 파일에서도 사라짐
@@ -119,7 +123,7 @@ bin/n8n.sh import
 - 노드 파라미터에 직접 넣은 토큰·URL, `pinData`(고정 테스트 데이터), `shared`(소유 계정 정보 — 이메일 포함)는 그대로 들어가므로 커밋 전에 확인하고 지우세요
 
 ### 4. 버전 업그레이드
-1. `bin/n8n.sh backup` — 볼륨(암호화 키)과 DB(워크플로우·크레덴셜) 백업
+1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
 2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 도 함께)
 3. `bin/n8n.sh restart` — 새 버전 이미지는 자동으로 pull 됨
 

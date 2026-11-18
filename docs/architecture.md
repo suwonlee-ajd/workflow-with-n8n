@@ -73,6 +73,7 @@
 |--------|------|------|
 | 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n-postgres/n8n_db_<시각>.sql.gz` |
 | 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_backup_<시각>.tar.gz` |
+| 워크플로우 JSON (백업) | — | `bin/n8n.sh backup` → `data/backups/<날짜>/n8n/n8n_workflows_<시각>/<ID>.json` |
 | 워크플로우 JSON (git 이력용) | `services/n8n/workflows/` — 현재 저장소에는 없음 | 필요할 때 `bin/n8n.sh export` 로 만들어 커밋 |
 | 컨테이너 로그 | Docker, 그리고 `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` | 백업 대상 아님. [logging.md](logging.md) 참고 |
 | 비밀값 | `services/n8n/.env`, `services/n8n-admin/.env` | git 제외. 따로 보관 |
@@ -146,7 +147,7 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 
 1. Claude Code 가 `.claude/skills/n8n` 스킬과 `.claude/rules/n8n` 규칙에 따라 n8n-mcp 로 워크플로우를 검증하고 만들거나 고친다. n8n 화면에서 직접 고쳐도 된다.
 2. 변경은 n8n DB 에 바로 저장된다. 스케줄·웹훅·폼 트리거는 워크플로우를 게시(활성화)해야 동작한다.
-3. git 으로 이력을 남기려면 `bin/n8n.sh export` 로 JSON 을 내보내 커밋한다. 현재는 내보낸 JSON 을 저장소에 두지 않으므로, 워크플로우 원본은 n8n DB 와 `bin/n8n.sh backup` 백업에만 있다.
+3. git 으로 이력을 남기려면 `bin/n8n.sh export` 로 JSON 을 내보내 커밋한다. 현재는 내보낸 JSON 을 저장소에 두지 않으므로, 워크플로우 원본은 n8n DB 와 `bin/n8n.sh backup` 백업(DB 덤프와 워크플로우 JSON)에만 있다.
 4. 다른 n8n 으로 옮길 때는 먼저 `export` 한 JSON 을 `bin/n8n.sh import` 로 가져온다. 크레덴셜 값은 JSON 에 없으므로 다시 만들어 연결한다.
 
 ## 서비스별 출처와 설치
@@ -224,7 +225,7 @@ bin/n8n-admin.sh start                                       # http://localhost:
 4. n8n-mcp 설치와 Claude Code 연결 (README 6장)
 5. n8n-mcp-skills 플러그인 설치
 6. (선택) n8n-admin 설치와 실행 (README 7장)
-7. 워크플로우 옮기기: 저장소에는 워크플로우 JSON 이 없으므로, 기존 n8n 에서 `bin/n8n.sh export` 한 JSON 을 가져와 `bin/n8n.sh import` 하거나 DB 백업을 복원한다 (README 3장, 5장). `import` 로 가져온 워크플로우는 모두 비활성 상태이고, 크레덴셜은 다시 연결해야 한다
+7. 워크플로우 옮기기: 저장소에는 워크플로우 JSON 이 없으므로, 기존 n8n 의 백업(`bin/n8n.sh backup`)에서 DB 덤프를 복원하거나, 백업에 든 워크플로우 JSON 을 `services/n8n/workflows/` 에 넣고 `bin/n8n.sh import` 한다 (README 3장, 5장). `import` 로 가져온 워크플로우는 모두 비활성 상태이고, 크레덴셜은 다시 연결해야 한다
 
 ## 클러스터링
 
