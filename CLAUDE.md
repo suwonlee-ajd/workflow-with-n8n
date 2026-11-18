@@ -16,7 +16,7 @@
 
 ## HARD RULES
 
-- n8n 작업의 HARD RULE(삭제 규칙)은 [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)에 있다.
+- n8n 작업의 HARD RULE(삭제 규칙)과 세션 역할(작업지시서)은 [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)에 있다.
 
 ## 환경
 

@@ -2,6 +2,17 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.9.2] - 2026-11-18
+
+### 추가
+
+- `.claude/rules/n8n/common.md`: 세션 역할(`repo`·`mcp`)과 작업지시서(`.claude/tasks/<받을 세션>/`) 규칙. 작업을 모두 끝내면 작업지시서를 지움
+
+### 변경
+
+- `.claude/rules/n8n/common.md`: 제목을 'workflow-with-n8n 공통 규칙'으로 바꾸고, 적용 범위를 저장소 전체로 넓힘 (HARD RULES·일반 규칙은 n8n 작업에만)
+- `CLAUDE.md`, `README.md`: 세션 역할·작업지시서 위치 안내
+
 ## [0.9.1] - 2026-11-18
 
 ### 변경
@@ -62,6 +73,7 @@
 - n8n-mcp 2.103.0 으로 업데이트
 - 스크립트·설정 주석을 코드 스타일 규칙에 맞춤 (PR #3)
 
+[0.9.2]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/suwonlee-ajd/workflow-with-n8n/compare/v0.7.0...v0.8.0
