@@ -278,6 +278,18 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 | `errorWorkflow` | `[에러] 공통: 실패 알림` (에러 워크플로우 자신은 제외) |
 | `availableInMCP` | `true` |
 
+### 노드 버전
+
+- 노드 `typeVersion` 은 실행 중인 n8n(`N8N_VERSION`, 현재 2.44.7)이 지원하는 값으로 씀
+  - 이유: n8n-mcp 가 더 새 버전을 알려 줄 수 있음
+  - 예: Convert to File 은 2.44.7 에서 1.1 까지인데 1.2 로 만들자, 화면에서 저장할 때 설정이 비워져 CSV 로 바뀜
+- 확인: 컨테이너 안 노드 정의의 `version`
+
+```bash
+# 예: Convert to File (2.44.7 기준 [1, 1.1])
+docker exec n8n sh -c 'grep -o "version: \[[^]]*\]" $(find /usr/local/lib/node_modules/n8n -path "*n8n-nodes-base/dist/nodes/Files/ConvertToFile/ConvertToFile.node.js" | head -1)'
+```
+
 ### 외부 호출과 오류
 
 - 외부 API·Slack·LLM 노드는 `retryOnFail` 을 켬. `maxTries`·`waitBetweenTries` 는 대상 서비스에 맞춰 노드마다 정함 (현재 2~3회, 1~5초)
