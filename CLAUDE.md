@@ -7,6 +7,7 @@
 | 문서 | 내용 |
 |------|------|
 | [README.md](README.md) | 설치, 실행, 설정, 디렉터리 구조 |
+| [CHANGELOG.md](CHANGELOG.md) | 버전별 변경 기록 |
 | [docs/architecture.md](docs/architecture.md) | 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법 |
 | [docs/logging.md](docs/logging.md) | 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인 |
 | [docs/code-style.md](docs/code-style.md) | 코드 스타일 (초안) |
