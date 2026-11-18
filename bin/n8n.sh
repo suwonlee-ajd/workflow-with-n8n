@@ -16,24 +16,28 @@ COMPOSE_FILE="services/n8n/docker-compose.yml"
 BACKUP_DIR="data/backups"         # 백업: data/backups/<날짜 YYYYMMDD>/<서비스명>/
 LOG_DIR="logs"                    # 로그: logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log
 WORKFLOW_DIR="services/n8n/workflows"
-WORKFLOW_TMP="/tmp/workflows"     # export/import 때 컨테이너 안에서 쓰는 임시 경로
+WORKFLOW_TMP="/tmp/workflows"     # 컨테이너 안 임시 경로 (export·import·backup 용)
 
-# compose 파일의 ${VAR} 보간도 services/n8n/.env 를 따르도록 --env-file 로 함께 넘김
+# docker compose 를 services/n8n 의 .env·compose 파일로 실행
+# - --env-file: compose 파일의 ${VAR} 보간도 services/n8n/.env 를 따르도록
 compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
-# 백업 폴더(data/backups/<날짜>/<서비스명>/)를 만들고 경로를 출력. 서비스명은 컨테이너 이름: n8n, n8n-postgres
-# 사용: dir="$(backup_dir <서비스명> <YYYYMMDD_HHMMSS>)"
+# 백업 폴더를 만들고 경로를 출력
+# - 경로: data/backups/<날짜>/<서비스명>/ (서비스명은 컨테이너 이름: n8n, n8n-postgres)
+# - 사용: dir="$(backup_dir <서비스명> <YYYYMMDD_HHMMSS>)"
 backup_dir() {
   local dir="$BACKUP_DIR/${2%%_*}/$1"
   mkdir -p "$dir"
   echo "$dir"
 }
 
-# 컨테이너 로그(Docker 가 보관)를 파일로 기록: logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log (날짜는 기록한 날)
-# 컨테이너를 지우면(compose down) Docker 로그도 함께 사라지므로 stop·restart 가 지우기 전에 호출
-# (종료 과정의 로그까지 담기도록 compose stop 뒤에 호출). 실패해도 중지·재시작은 계속 진행
+# 컨테이너 로그를 파일로 기록
+# - 위치: logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log (날짜는 기록한 날)
+# - compose stop 뒤에 호출: 종료 과정의 로그까지 담도록
+# - compose down 앞에 호출: down 하면 Docker 로그도 함께 삭제
+# - 실패해도 중지·재시작은 계속 진행
 save_logs() {
   local c dir
   dir="$LOG_DIR/$(date +%Y)/$(date +%Y.%m)"
@@ -90,7 +94,8 @@ case "$1" in
     docker run --rm -v n8n_data:/volume -v "$ROOT/$N8N_BACKUP_DIR":/backup alpine tar -czf "/backup/$BACKUP_FILE" -C /volume ./
     echo "📦 PostgreSQL(워크플로우·크레덴셜·실행 이력)을 덤프합니다: $DB_BACKUP_DIR/$DB_BACKUP_FILE"
     compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > "$DB_BACKUP_DIR/$DB_BACKUP_FILE"
-    # DB 덤프에도 워크플로우가 들어 있지만, 하나씩 열어 보거나 골라서 되돌릴 수 있도록 JSON 으로도 남김 (n8n 이 실행 중이어야 함)
+    # 워크플로우를 JSON 으로도 백업 (n8n 이 실행 중이어야 함)
+    # - DB 덤프에도 있지만, 하나씩 열어 보거나 골라서 되돌릴 수 있도록
     echo "📦 워크플로우를 JSON 으로 내보냅니다 (크레덴셜 제외): $WF_BACKUP_DIR/"
     compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"
     compose exec -T n8n n8n export:workflow --backup --output="$WORKFLOW_TMP/"
@@ -101,7 +106,7 @@ case "$1" in
     echo "📤 워크플로우를 $WORKFLOW_DIR 로 내보냅니다 (크레덴셜 제외)..."
     compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"
     compose exec -T n8n n8n export:workflow --backup --output="$WORKFLOW_TMP/"
-    # n8n 에서 지운 워크플로우가 남지 않도록 기존 JSON 을 비우고 통째로 교체
+    # 기존 JSON 을 비우고 통째로 교체 (n8n 에서 지운 워크플로우가 남지 않도록)
     rm -f "$WORKFLOW_DIR"/*.json
     compose cp n8n:"$WORKFLOW_TMP/." "$WORKFLOW_DIR/"
     echo "✅ 내보내기 완료: $(ls "$WORKFLOW_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')개"
@@ -110,7 +115,8 @@ case "$1" in
     echo "📥 $WORKFLOW_DIR 의 워크플로우를 n8n 으로 가져옵니다..."
     compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"
     compose cp "$WORKFLOW_DIR/." n8n:"$WORKFLOW_TMP"
-    # 추가 옵션(--projectId 등)은 n8n 에 그대로 전달. 일반 모드에서는 가져온 워크플로우가 전부 비활성화됨
+    # 추가 옵션(--projectId 등)은 n8n 에 그대로 전달
+    # - 일반 모드에서는 가져온 워크플로우가 전부 비활성화됨
     compose exec -T n8n n8n import:workflow --separate --input="$WORKFLOW_TMP" "${@:2}"
     echo "✅ 가져오기 완료."
     ;;
