@@ -1,0 +1,241 @@
+# 아키텍처
+
+이 프로젝트를 이루는 서비스와 그 연결 관계, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
+
+## 시스템 구성도
+
+현재는 PC 한 대에서 모든 서비스를 띄우는 단일 구성이다.
+
+핵심은 n8n, PostgreSQL, n8n-mcp 다. n8n-admin 은 없어도 나머지가 그대로 동작하는 부가 도구라 점선으로 옆에 두었다.
+
+```text
+┌──────────────────────────────────────── 로컬 PC ─────────────────────────────────────────┐
+│                                                                                          │
+│  브라우저 ───────────────────────────────────────┬ ─ ─ ─ :50999  ─ ─ ─ ─ ─ ┐             │
+│                                                  │                         ▼             │
+│  Claude Code                                     │              ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐  │
+│       │ stdio                                    │              ╎      n8n-admin      ╎  │
+│       ▼                                          │              ╎     (부가 도구)     ╎  │
+│  ┌──────────┐           REST API                 │              └─ ─ ─ ─ ─ ┬ ─ ─ ─ ─ ─┘  │
+│  │ n8n-mcp  │───────────────────────────────────▶│◀ ─ ─  REST API ─ ─ ─ ─ ─┘             │
+│  └──────────┘                                    │                                       │
+│                                                  │ :50990 (UI·웹훅·폼·API)               │
+│                                                  ▼                                       │
+│  ┌───────────── Docker (네트워크 n8n_default) ──────────────┐                            │
+│  │                                                          │                            │
+│  │  ┌──────────────────┐  postgres:5432   ┌──────────────┐  │                            │
+│  │  │   n8n-postgres   │◀─────────────────│     n8n      │  │                            │
+│  │  │ 호스트 포트 없음 │                  │ :50990 공개  │  │                            │
+│  │  └──────────────────┘                  └──────────────┘  │                            │
+│  │  볼륨 n8n_postgres_data          볼륨 n8n_data           │                            │
+│  │  (워크플로우·실행 기록 등)       (암호화 키·이벤트 로그) │                            │
+│  └──────────────────────────────────────────────────────────┘                            │
+│                                                                                          │
+│  bin/n8n.sh ─▶ 시작·중지·백업·내보내기 (data/backups, data/logs, services/n8n/workflows) │
+└──────────────────────────────────────────────────┬───────────────────────────────────────┘
+                                                   │ 워크플로우가 호출
+                                                   ▼
+                                 외부 서비스 (Slack, 검색·시세 API 등)
+```
+
+## 서비스 목록
+
+| 서비스 | 역할 | 실행 방식 | 포트 | 버전 |
+|--------|------|-----------|------|------|
+| n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 50990 | 2.44.7 |
+| PostgreSQL | n8n 데이터 저장 | Docker 컨테이너 `n8n-postgres` | 없음 (Docker 내부 5432) | 17 |
+| n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.0 |
+| n8n-mcp-skills | n8n-mcp 사용법 스킬 묶음 | Claude Code 플러그인 | 없음 | 1.37.1 |
+| n8n-admin (부가) | 워크플로우·유저·크레덴셜 관리 대시보드 | 호스트에서 Next.js 실행 | 50999 | 1.2.0 |
+
+- n8n 은 실행 모드 기본값(`regular`)으로 동작한다. 프로세스 하나가 화면, 웹훅, 워크플로우 실행을 모두 맡는다.
+- 포트와 버전을 바꾸는 곳은 아래 각 서비스의 "설정"에 적었다.
+
+## 연결 관계
+
+| 출발 | 도착 | 방식 | 인증 |
+|------|------|------|------|
+| 브라우저 | n8n | HTTP `localhost:50990` | n8n 계정 로그인 |
+| 브라우저 | n8n-admin | HTTP `localhost:50999` | `ADMIN_PASSWORD` |
+| n8n-admin | n8n | n8n 공개 API (`/api/v1`) | n8n API 키 |
+| Claude Code | n8n-mcp | stdio (프로세스 직접 실행) | 없음 |
+| n8n-mcp | n8n | n8n 공개 API (`/api/v1`) | n8n API 키 |
+| n8n | PostgreSQL | Docker 내부 네트워크 `postgres:5432` | `POSTGRES_*` |
+| n8n | 외부 서비스 | 워크플로우 노드가 호출 | n8n 크레덴셜 |
+| n8n-admin | Slack | Incoming Webhook | 웹훅 주소 |
+
+- n8n-admin 과 n8n-mcp 는 같은 n8n API 키를 쓴다. 키는 `services/n8n/.env` 의 `N8N_API_KEY` 에 있고, n8n-admin 은 같은 값을 `services/n8n-admin/.env` 의 `SERVER_API_KEY` 에 둔다.
+- PostgreSQL 은 호스트로 포트를 열지 않는다. 접속은 `docker exec` 로만 한다.
+
+## 데이터가 저장되는 곳
+
+| 데이터 | 위치 | 백업 |
+|--------|------|------|
+| 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` → `data/backups/n8n_db_<시각>.sql.gz` |
+| 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup` → `data/backups/n8n_backup_<시각>.tar.gz` |
+| 워크플로우 JSON (git 이력용) | `services/n8n/workflows/` | `bin/n8n.sh export` 로 갱신 후 커밋 |
+| 컨테이너 로그 | Docker, 중지·재시작 때 `data/logs/` | [logging.md](logging.md) 참고 |
+| 비밀값 | `services/n8n/.env`, `services/n8n-admin/.env` | git 제외. 따로 보관 |
+
+암호화 키(`N8N_ENCRYPTION_KEY`)를 잃으면 DB 백업이 있어도 크레덴셜을 복호화할 수 없다. 볼륨 백업과 DB 백업을 함께 보관한다.
+
+## 애플리케이션 아키텍처
+
+이 프로젝트의 애플리케이션은 n8n 에 올린 워크플로우다. 코드 저장소에는 워크플로우를 내보낸 JSON(`services/n8n/workflows/`)만 있고, 실제로 실행되는 것은 n8n DB 에 저장된 워크플로우다.
+
+### 워크플로우 계층
+
+워크플로우는 실행 역할에 따라 세 유형으로 나누고, 이름 앞에 유형을 붙인다 (`[유형] 도메인: 기능`).
+
+```text
+            트리거
+ (스케줄 · 폼 · 웹훅 · 수동)
+              │
+              ▼
+  ┌────────────────────────┐                          ┌──────────────────────────┐
+  │         [메인]         │     Execute Workflow     │          [서브]          │
+  │    업무 흐름 하나를    │─────────────────────────▶│     여러 곳에서 쓰는     │
+  │  처음부터 끝까지 실행  │        결과 반환         │        공통 로직         │
+  └────────────────────────┘                          └──────────────────────────┘
+        │ 실행 실패 시  │                                           │
+        │               │                                           │
+        │               └─────────────────────┬─────────────────────┘
+        │                                     ▼
+        │                  외부 서비스 (Slack, 시세·검색·뉴스 API)
+        ▼
+  ┌────────────────────────┐
+  │         [에러]         │─────────────▶ Slack
+  │       실패 알림        │
+  └────────────────────────┘
+```
+
+| 유형 | 시작 방식 | 역할 |
+|------|-----------|------|
+| `[메인]` | 스케줄, 폼, 웹훅, 수동 실행 | 업무 흐름 하나를 처음부터 끝까지 실행한다. 필요하면 서브를 호출한다 |
+| `[서브]` | 다른 워크플로우의 Execute Workflow 노드 | 여러 곳에서 쓰는 공통 로직. 입력을 받아 처리하고 결과를 돌려준다 |
+| `[에러]` | Error Trigger | 다른 워크플로우가 실패했을 때 n8n 이 대신 실행한다. 실패 내용을 알린다 |
+
+이름 규칙과 캔버스 그룹 규칙은 [.claude/skills/n8n/references/workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) 의 '네이밍 컨벤션'에 있다.
+
+### 도메인별 구성
+
+2026-11-18 기준이다. 최신 목록은 n8n 화면이나 `n8n_list_workflows` 로 확인한다.
+
+| 도메인 | 워크플로우 | 시작 방식 | 상태 |
+|--------|------------|-----------|------|
+| 주식 | `[메인] 주식: 국내 종목 선별` | 스케줄, 폼 | 활성 |
+| 주식 | `[서브] 주식: 일별 시세 가져오기` | 메인이 호출 | 활성 |
+| 주식 | `[서브] 주식: 시장 지표 수집` | 메인이 호출 | 활성 |
+| 주식 | `[서브] 주식: 종목 선별 공통` | 메인이 호출 | 활성 |
+| 브리핑 | `[메인] 브리핑: 전국 아침 뉴스` | 스케줄, 폼 | 비활성 |
+| 브리핑 | `[메인] 브리핑: 서울 아침 뉴스` | 스케줄 | 비활성 |
+| 운영 | `[메인] 운영: 신규 워크플로우 알림` | 스케줄 | 활성 |
+| 운영 | `[메인] 운영: 주간 실행 리포트` | 스케줄 | 활성 |
+| 검색 | `[메인] 검색: 네이버 통합검색` | 폼 | 비활성 |
+| 공통 | `[에러] 공통: 실패 알림` | Error Trigger | 활성 |
+| 예제 | `[메인] 예제: 이름 받아 인사하기`, `[메인] 예제: 주문 금액 분류` | 웹훅, 수동 | 비활성 |
+| 예제 | `example-1`, `example-2`, `example-3` (이름 규칙 예외) | 웹훅, 폼 | `example-2` 만 활성 |
+
+- 메인이 서브를 호출하는 구조는 현재 주식 도메인에만 있다. `[메인] 주식: 국내 종목 선별` 이 서브 3개를 차례로 부른다.
+- 나머지 메인은 서브 없이 외부 API 호출과 Slack 전송을 직접 한다.
+
+### 에러 처리
+
+n8n 은 워크플로우가 실패하면 그 워크플로우 설정의 `errorWorkflow` 에 지정된 워크플로우를 실행한다. 여기서는 `[에러] 공통: 실패 알림` 하나를 공용으로 쓴다.
+
+- 지정된 워크플로우: `[메인] 브리핑: 전국 아침 뉴스`, `[메인] 운영: 신규 워크플로우 알림`, `[메인] 운영: 주간 실행 리포트`
+- 지정되지 않은 워크플로우는 실패해도 알림이 가지 않는다. 주식 도메인 4개가 여기에 해당한다.
+- 에러 워크플로우는 게시(활성)되어 있어야 동작하고, 편집 화면에서 수동으로 실행한 실패에는 호출되지 않는다.
+
+### 개발과 반영 흐름
+
+```text
+Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ──▶ bin/n8n.sh export ──▶ services/n8n/workflows/*.json ──▶ git
+ (스킬·규칙)    (검증·생성·수정)  (게시·실행)
+```
+
+1. Claude Code 가 `.claude/skills/n8n` 스킬과 `.claude/rules/n8n` 규칙에 따라 n8n-mcp 로 워크플로우를 검증하고 만들거나 고친다. n8n 화면에서 직접 고쳐도 된다.
+2. 변경은 n8n DB 에 바로 저장된다. 스케줄·웹훅·폼 트리거는 워크플로우를 게시(활성화)해야 동작한다.
+3. `bin/n8n.sh export` 로 JSON 을 내보내 커밋한다. 이 단계를 거치지 않으면 git 에는 변경이 남지 않는다.
+4. 다른 n8n 으로 옮길 때는 `bin/n8n.sh import` 로 가져온다. 크레덴셜 값은 JSON 에 없으므로 다시 만들어 연결한다.
+
+## 서비스별 출처와 설치
+
+사전 준비: Docker(Compose 포함), Node.js 20 이상, npm, pnpm.
+
+### n8n
+
+- 출처: [n8n-io/n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases)
+- 이미지: `docker.n8n.io/n8nio/n8n:<N8N_VERSION>`
+- 한글 환경 설정 참고: [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)
+- 설정: `services/n8n/.env` (버전 `N8N_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`
+
+```bash
+cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력
+bin/n8n.sh start                                 # http://localhost:50990
+```
+
+처음 접속하면 관리자 계정을 만든다. 이어서 **Settings > n8n API** 에서 API 키를 만들어 `.env` 의 `N8N_API_KEY` 에 넣는다.
+
+### PostgreSQL
+
+- 출처: [Docker 공식 이미지 postgres](https://hub.docker.com/_/postgres) · [문서](https://www.postgresql.org/docs/17/)
+- 이미지: `postgres:17-alpine`
+- 설정: `services/n8n/.env` 의 `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+
+따로 설치하지 않는다. `bin/n8n.sh start` 가 n8n 과 함께 띄운다. 계정과 DB 는 볼륨이 비어 있는 최초 기동 때만 만들어진다.
+
+### n8n-mcp
+
+- 출처: [czlonkowski/n8n-mcp](https://github.com/czlonkowski/n8n-mcp) · [npm](https://www.npmjs.com/package/n8n-mcp)
+- 설치 형태: npm 패키지. 버전은 `services/n8n-mcp/package.json` 에 고정
+- 설정: `.mcp.json` (n8n 주소 `N8N_API_URL`, 웹훅 보안 모드, 통계 전송 끔). API 키는 실행할 때 `services/n8n/.env` 에서 읽는다
+
+```bash
+cd services/n8n-mcp && npm ci
+```
+
+설치 후 Claude Code 를 새로 열어 프로젝트 MCP 서버 `n8n-mcp` 를 승인하고 `/mcp` 로 연결을 확인한다. 버전을 올릴 때는 `package.json` 의 버전을 바꾸고 `npm install` 한 뒤 Claude Code 를 다시 시작한다.
+
+### n8n-mcp-skills
+
+- 출처: [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills)
+- 설치 형태: Claude Code 플러그인. `.claude/settings.json` 의 `enabledPlugins` 로 이 프로젝트에서 켠다
+
+Claude Code 안에서 실행한다.
+
+```text
+/plugin marketplace add czlonkowski/n8n-skills
+/plugin install n8n-mcp-skills@n8n-mcp-skills
+```
+
+### n8n-admin (부가 도구)
+
+- 출처: [team-datapopcorn/n8n-admin](https://github.com/team-datapopcorn/n8n-admin)
+- 설치 형태: git 서브모듈 (`services/n8n-admin/`). 이 리포지토리에는 원격 주소와 고정한 커밋만 기록된다
+- 설정: `services/n8n-admin/.env` (접속 주소와 포트 `NEXTAUTH_URL`, n8n 주소 `SERVER_URL`, API 키 `SERVER_API_KEY`)
+
+```bash
+git submodule update --init                                  # 서브모듈 받기
+cd services/n8n-admin/admin && pnpm install && cd -          # 의존성 설치
+cp services/n8n-admin/.env.example services/n8n-admin/.env   # 값 입력
+bin/n8n-admin.sh start                                       # http://localhost:50999
+```
+
+외부 리포지토리이므로 내부 파일은 수정하지 않는다. 업데이트 확인과 반영 방법은 README 7장에 있다.
+
+## 설치 순서
+
+새 PC 에 처음 구성할 때의 순서다. 자세한 설명은 README 의 각 장을 따른다.
+
+1. 리포지토리 받기: `git clone --recurse-submodules <주소>`
+2. n8n 과 PostgreSQL 실행: `.env` 작성 후 `bin/n8n.sh start` (README 1~2장, 5장)
+3. n8n 관리자 계정과 API 키 만들기
+4. n8n-mcp 설치와 Claude Code 연결 (README 6장)
+5. n8n-mcp-skills 플러그인 설치
+6. (선택) n8n-admin 설치와 실행 (README 7장)
+7. 워크플로우 가져오기: `bin/n8n.sh import` (README 3장). 가져온 워크플로우는 모두 비활성 상태이고, 크레덴셜은 다시 연결해야 한다
+
+## 클러스터링
+
+현재는 단일 PC, 단일 n8n 프로세스 구성이다. 여러 서버로 나누는 클러스터링 방법은 확인 중이며, 정해지면 이 절에 서버 구성도를 추가한다.
