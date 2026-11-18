@@ -30,10 +30,10 @@ root
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
 ├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)·세션 간 작업지시서(tasks/, 다 쓰면 지움)
 ├── data/backups/<일시>/<서비스명>/  # 백업 (git 제외). 일시는 YYYYMMDDHHMM, 서비스명은 n8n·n8n-postgres. 위치는 .env 의 BACKUP_DIR 로 변경 가능
+│                                    #   bin/n8n.sh backup 과 백업 워크플로우(매일 18:00)가 같은 규칙으로 저장. n8n 컨테이너에 폴더 전체 연결
 │                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
-│                                    #   n8n-postgres/  DB 덤프 *.sql.gz
-├── data/backups/n8n-workflow/       # 백업 워크플로우 결과 (매일 18:00). n8n 컨테이너에 연결된 유일한 백업 폴더
-│                                    #   <일시>/n8n/  볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, 실행 기록·데이터 테이블 n8n_{executions,datatables}_<시각>.json
+│                                    #                  실행 기록·데이터 테이블 n8n_{executions,datatables}_<시각>.json (백업 워크플로우만)
+│                                    #   n8n-postgres/  DB 덤프 *.sql.gz (bin/n8n.sh backup 만)
 ├── logs/<YYYY>/<YYYY.MM>/           # 컨테이너 로그 파일 <서비스명>.<YYYY-MM-DD>.log (git 제외)
 ├── docs/                            # 프로젝트 관련 문서
 │   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
@@ -71,7 +71,8 @@ root
 5. **백업 경로 (`BACKUP_DIR`)**
    - 비워 두면 프로젝트 루트의 `data/backups`. 다른 위치는 절대 경로로 지정
    - `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 값을 읽음
-   - n8n 컨테이너에는 그 아래 `n8n-workflow/` 만 연결 (백업 워크플로우의 저장 위치). `bin/n8n.sh backup` 의 볼륨 백업·DB 덤프는 컨테이너에서 보이지 않음
+   - n8n 컨테이너에는 `BACKUP_DIR` 전체를 `~/.n8n-files/backups` 로 연결. 백업 워크플로우도 `bin/n8n.sh backup` 과 같은 경로에 저장
+   - 그래서 n8n 워크플로우에서 `bin/n8n.sh backup` 의 볼륨 백업·DB 덤프도 읽을 수 있음
 
 ---
 
@@ -125,7 +126,7 @@ bin/n8n.sh import
 > `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<YYYYMMDDHHMM>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
 > 백업한 JSON 하나를 되돌릴 때는 아래 '파일 하나만 가져올 때' 명령에 그 파일 경로를 넣습니다.
 > 터미널 없이도 `[메인] 운영: n8n 데이터 백업` 워크플로우가 매일 18:00 에 자동으로 백업합니다. n8n 화면에서 수동으로 실행해도 됩니다.
-> `<BACKUP_DIR>/n8n-workflow/<YYYYMMDDHHMM>/n8n/` 에 n8n_data 볼륨(`n8n_backup_<시각>.tar.gz`, 암호화 키 포함), 워크플로우 JSON(`n8n_workflows_<시각>/<워크플로우 ID>.json`), 실행 기록·데이터 테이블(`n8n_{executions,datatables}_<시각>.json`)을 남깁니다.
+> `bin/n8n.sh backup` 과 같은 `<BACKUP_DIR>/<YYYYMMDDHHMM>/n8n/` 에 n8n_data 볼륨(`n8n_backup_<시각>.tar.gz`, 암호화 키 포함), 워크플로우 JSON(`n8n_workflows_<시각>/<워크플로우 ID>.json`), 실행 기록·데이터 테이블(`n8n_{executions,datatables}_<시각>.json`)을 남깁니다.
 > 크레덴셜이 든 DB 덤프는 `bin/n8n.sh backup` 만 만듭니다 (n8n 컨테이너에 `pg_dump` 없음). 파일은 자동으로 지워지지 않습니다.
 > 18:00 에 Mac 이 절전 중이면 그날 백업은 건너뜁니다. n8n 이 Mac 의 Docker 에서 돌고, 스케줄러가 놓친 실행을 다시 돌리지 않기 때문입니다.
 > git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.

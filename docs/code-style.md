@@ -145,7 +145,7 @@ esac
 | 실행 시각 스탬프 | `%Y%m%d_%H%M%S` (예: `20261118_151900`) |
 | 백업 폴더 일시 | `%Y%m%d%H%M`, 실행 시각 스탬프의 앞 12자리 (예: `202611181519`) |
 | 백업 | `<BACKUP_DIR>/<YYYYMMDDHHMM>/<서비스명>/` (`BACKUP_DIR` 기본값 `data/backups`) |
-| 백업 워크플로우 | `<BACKUP_DIR>/n8n-workflow/<YYYYMMDDHHMM>/n8n/` 에 `n8n_backup_<YYYYMMDD_HHMMSS>.tar.gz`, `n8n_workflows_<YYYYMMDD_HHMMSS>/<워크플로우 ID>.json`, `n8n_{executions,datatables}_<YYYYMMDD_HHMMSS>.json` |
+| 백업 워크플로우 | `<BACKUP_DIR>/<YYYYMMDDHHMM>/n8n/` 에 `n8n_backup_<YYYYMMDD_HHMMSS>.tar.gz`, `n8n_workflows_<YYYYMMDD_HHMMSS>/<워크플로우 ID>.json`, `n8n_{executions,datatables}_<YYYYMMDD_HHMMSS>.json` |
 | 로그 | `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` |
 
 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)을 쓴다.
