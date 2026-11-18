@@ -37,7 +37,7 @@ n8n 고급 활용법을 교육하기 위한 콘텐츠 생성 모듈. 대상: n8n
 - 추가 학습 추천
 ```
 
-저장 위치: `docs/tutorials/n8n/[주제명].md`
+저장 위치: `docs/tutorials/n8n/[주제명].md` (폴더가 없으면 만든다)
 
 ### 2. 실습형 (워크플로우 직접 생성)
 
@@ -127,6 +127,6 @@ n8n 고급 활용법을 교육하기 위한 콘텐츠 생성 모듈. 대상: n8n
 - 확인 창 없이 쓰려면 `.claude/settings.local.json`의 `permissions.allow`에 `mcp__n8n-mcp__<도구 이름>` 형식으로 등록 (예: `mcp__n8n-mcp__n8n_create_workflow`). 미등록 도구도 확인 후 사용 가능. 현재 등록 현황은 README 6장 도구 표의 ✅ 참고
 - 삭제 기능이 있는 도구는 allow에 등록하지 않음 (`.claude/rules/n8n/common.md` 삭제 규칙)
   - 삭제 전용: `n8n_delete_workflow`
-  - 조회·삭제가 한 도구에 묶인 것: `n8n_executions`, `n8n_workflow_versions`, `n8n_manage_datatable`, `n8n_manage_credentials`, `n8n_manage_folders`, `n8n_manage_agents`(토큰 필요) — 조회용으로 등록해도 삭제까지 확인 없이 실행됨
+  - 조회·삭제가 한 도구에 묶인 것: `n8n_executions`, `n8n_workflow_versions`, `n8n_manage_datatable`, `n8n_manage_credentials`, `n8n_manage_folders`, `n8n_manage_variables`(유료 라이선스 필요), `n8n_manage_agents`(토큰 필요) — 조회용으로 등록해도 삭제까지 확인 없이 실행됨
   - 예외: `n8n_update_partial_workflow`는 노드 삭제(`removeNode`)·비활성화도 포함하지만, 수정 직전 스냅샷으로 롤백할 수 있어 등록함
 - 삭제 기능이 없어도 전체 교체(`n8n_update_full_workflow`)와 실제 실행(`n8n_test_workflow`, `n8n_evaluations`) 도구는 등록하지 않음

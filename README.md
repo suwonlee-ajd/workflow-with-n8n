@@ -14,14 +14,19 @@ root
 │   ├── .env                         # 환경변수 (버전·포트·타임존·로케일·DB 계정·암호화 키·API 키) — 비밀값 포함, git 제외
 │   ├── .env.example                 # .env 템플릿 (비밀값은 비워 둠) — cp .env.example .env 후 ★ 항목 채우기
 │   ├── docker-compose.yml           # n8n + PostgreSQL 컨테이너 정의
-│   └── workflows/                   # 워크플로우 JSON (bin/n8n.sh export/import, git 관리 대상)
+│   └── workflows/                   # bin/n8n.sh export 가 만드는 워크플로우 JSON 폴더 (현재 저장소에는 없음, 3장 참고)
 ├── services/n8n-mcp/                # Claude Code 용 n8n MCP 서버 (6장 참고)
 ├── services/n8n-admin/              # n8n 관리 대시보드 — 외부 리포지토리를 git 서브모듈로 연결 (7장 참고)
 ├── .gitmodules                      # 서브모듈 등록 정보 (n8n-admin 원격 주소)
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
 ├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)
-├── data/backups/                    # bin/n8n.sh backup 결과물 (볼륨 *.tar.gz, DB 덤프 *.sql.gz)
+├── data/backups/                    # bin/n8n.sh backup 결과물 (볼륨 *.tar.gz, DB 덤프 *.sql.gz), workflows/ 는 단일 워크플로우 백업
+├── data/logs/                       # bin/n8n.sh stop·restart 때 저장되는 컨테이너 로그 (git 제외)
 ├── docs/                            # 프로젝트 관련 문서
+│   ├── architecture.md              # 서비스 구성도, 연결 관계, 서비스별 출처와 설치 방법
+│   ├── logging.md                   # 로그가 남는 곳, 보관, 강제 종료 확인
+│   ├── n8n-ops-report-format.md     # 주간 운영 리포트 메시지 포맷
+│   └── code-style.md                # 코드 스타일 (작성 전)
 ├── CLAUDE.md                        # Claude Code 프로젝트 규칙
 └── README.md
 ```
@@ -66,10 +71,10 @@ root
 # 실행 (백그라운드)
 bin/n8n.sh start
 
-# 중지
+# 중지 (컨테이너를 지우기 전에 로그를 data/logs/ 에 저장)
 bin/n8n.sh stop
 
-# 재시작 (환경변수 갱신 시 컨테이너 완전 재생성)
+# 재시작 (환경변수 갱신 시 컨테이너 완전 재생성, 로그 저장은 stop 과 동일)
 bin/n8n.sh restart
 
 # 실시간 로그 확인
@@ -88,19 +93,28 @@ bin/n8n.sh import
 
 *(docker compose 를 직접 쓸 때는 compose 파일 경로를 지정하면 같은 폴더의 `.env` 를 자동으로 읽습니다: `docker compose -f services/n8n/docker-compose.yml up -d`)*
 
+**컨테이너 로그 보관**
+- 컨테이너 로그는 Docker `json-file` 드라이버에 쌓이며 파일당 10MB·최대 5개로 제한합니다 (`docker-compose.yml` 의 `x-logging`). Docker 에는 일수 기준 롤링이 없습니다.
+- 컨테이너를 지우면 Docker 로그도 사라지므로 `stop`·`restart` 는 지우기 직전에 `data/logs/<컨테이너>_<시각>.log` 로 저장합니다 (타임스탬프 포함, 자동 삭제 없음).
+- 프로세스가 죽어 Docker 가 같은 컨테이너를 다시 띄운 경우에는 로그가 그대로 이어집니다. `docker compose down`·`docker rm` 을 직접 실행하면 저장 없이 사라집니다.
+- 자세한 내용(강제 종료 확인 방법, n8n 로그 설정 변수 등): [docs/logging.md](docs/logging.md)
+
 ### 3. 워크플로우 형상관리 (export / import)
 워크플로우는 DB(PostgreSQL)에 저장되므로, git 으로 이력을 남기려면 JSON 으로 내보내야 합니다. 두 명령 모두 n8n 이 실행 중이어야 합니다.
 
+> 현재 저장소에는 내보낸 워크플로우 JSON 이 없습니다 (`services/n8n/workflows/` 폴더 없음). 워크플로우 원본은 n8n DB 에만 있으므로 보존은 `bin/n8n.sh backup` 으로 합니다.
+> git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.
+
 - `export`: 워크플로우 1개당 `<워크플로우 ID>.json` 1개. 폴더의 기존 JSON 을 비우고 통째로 교체하므로 n8n 에서 지운 워크플로우는 파일에서도 사라짐
   (단, 워크플로우가 0개면 n8n 이 오류를 내고 기존 파일은 그대로 둠)
-- `import`: 폴더의 JSON 을 **전부** 가져옴. 같은 ID 는 덮어쓰고 없는 ID 는 새로 생성. **가져온 워크플로우는 (이미 켜져 있던 것도) 모두 비활성 상태**가 되므로 UI 에서 다시 활성화해야 함.
+- `import`: 폴더의 JSON 을 **전부** 가져옴 (폴더가 없으면 실패하므로 먼저 `export` 한 JSON 이 있어야 함). 같은 ID 는 덮어쓰고 없는 ID 는 새로 생성. **가져온 워크플로우는 (이미 켜져 있던 것도) 모두 비활성 상태**가 되므로 UI 에서 다시 활성화해야 함.
   파일 하나만 가져올 때:
   ```bash
   docker cp services/n8n/workflows/<ID>.json n8n:/tmp/<ID>.json
   docker exec n8n n8n import:workflow --input=/tmp/<ID>.json
   ```
 - 크레덴셜 값은 JSON 에 들어가지 않습니다 (크레덴셜 ID·이름만 참조). 다른 n8n 으로 옮길 때는 크레덴셜을 따로 만들어 연결해야 합니다
-- 노드 파라미터에 직접 넣은 토큰·URL 과 `pinData`(고정 테스트 데이터)는 그대로 들어가므로 커밋 전에 확인하세요
+- 노드 파라미터에 직접 넣은 토큰·URL, `pinData`(고정 테스트 데이터), `shared`(소유 계정 정보 — 이메일 포함)는 그대로 들어가므로 커밋 전에 확인하고 지우세요
 
 ### 4. 버전 업그레이드
 1. `bin/n8n.sh backup` — 볼륨(암호화 키)과 DB(워크플로우·크레덴셜) 백업

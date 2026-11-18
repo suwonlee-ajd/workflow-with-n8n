@@ -15,6 +15,7 @@ cd "$ROOT"
 ENV_FILE="services/n8n/.env"
 COMPOSE_FILE="services/n8n/docker-compose.yml"
 BACKUP_DIR="data/backups"
+LOG_DIR="data/logs"
 WORKFLOW_DIR="services/n8n/workflows"
 # export/import 때 컨테이너 안에서 쓰는 임시 경로 (bind mount 대신 docker cp 로 주고받아 uid 권한 문제를 피함)
 WORKFLOW_TMP="/tmp/workflows"
@@ -22,6 +23,24 @@ WORKFLOW_TMP="/tmp/workflows"
 # compose 파일의 ${VAR} 보간도 services/n8n/.env 를 따르도록 --env-file 로 함께 넘김
 compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+# 컨테이너를 지우면(compose down) Docker 로그도 함께 사라지므로, 지우기 전에 파일로 남김
+# 종료 과정의 로그까지 담기도록 컨테이너를 멈춘 뒤(compose stop) 호출. 실패해도 중지·재시작은 계속 진행
+save_logs() {
+  mkdir -p "$LOG_DIR"
+  local stamp c file
+  stamp="$(date +%Y%m%d_%H%M%S)"
+  for c in n8n n8n-postgres; do
+    # 컨테이너가 없으면(이미 지워졌거나 처음 실행) 건너뜀
+    docker inspect "$c" >/dev/null 2>&1 || continue
+    file="$LOG_DIR/${c}_${stamp}.log"
+    if docker logs -t "$c" > "$file" 2>&1; then
+      echo "📝 로그 저장: $file ($(wc -l < "$file" | tr -d ' ')줄)"
+    else
+      echo "⚠️ $c 로그 저장에 실패했습니다. 계속 진행합니다."
+    fi
+  done
 }
 
 # 접속 포트는 services/n8n/.env 의 N8N_PORT 를 따름 (없으면 5678)
@@ -36,11 +55,15 @@ case "$1" in
     ;;
   stop)
     echo "🛑 n8n 컨테이너를 중지합니다..."
+    compose stop
+    save_logs
     compose down
     echo "✅ n8n이 중지되었습니다."
     ;;
   restart)
     echo "🔄 n8n 컨테이너를 완전히 재생성하여 재시작합니다 (services/n8n/.env 환경변수 갱신)..."
+    compose stop
+    save_logs
     compose down && compose up -d
     echo "✅ n8n이 재시작되었습니다."
     ;;
@@ -75,7 +98,6 @@ case "$1" in
     compose exec -T -u root n8n rm -rf "$WORKFLOW_TMP"
     compose cp "$WORKFLOW_DIR/." n8n:"$WORKFLOW_TMP"
     # 추가 옵션(--projectId 등)은 n8n 에 그대로 전달. 일반 모드에서는 가져온 워크플로우가 전부 비활성화됨
-    # (--activeState=fromJson 은 queue/multi-main 모드 전용)
     compose exec -T n8n n8n import:workflow --separate --input="$WORKFLOW_TMP" "${@:2}"
     echo "✅ 가져오기 완료."
     ;;
