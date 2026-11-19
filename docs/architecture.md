@@ -134,7 +134,7 @@ n8n 컨테이너에는 `<BACKUP_DIR>` 전체를 `~/.n8n-files/backups` 로 연�
 | `[서브]` | 다른 워크플로우의 Execute Workflow 노드 | 여러 곳에서 쓰는 공통 로직. 입력을 받아 처리하고 결과를 돌려준다 |
 | `[에러]` | Error Trigger | 다른 워크플로우가 실패했을 때 n8n 이 대신 실행한다. 실패 내용을 알린다 |
 
-이름 규칙과 캔버스 그룹 규칙은 [.claude/skills/n8n/references/workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) 의 '네이밍 컨벤션'에 있다.
+이름 규칙, 캔버스 그룹 규칙, 설명 스티키 노트(로고·제목·요약) 규칙은 [.claude/skills/n8n/references/workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) 의 '네이밍 컨벤션'에 있다.
 
 ### 워크플로우 예시
 
@@ -178,6 +178,7 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
   - 이유와 되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석, 되돌리는 방법은 [README](../README.md) '4. 버전 업그레이드' 에 있다.
 - 한글 환경 설정 참고: [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)
 - 설정: `services/n8n/.env` (버전 `N8N_VERSION`·`N8N_NODE_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`, `services/n8n/Dockerfile`
+- 스티키 노트 로고: 저장소의 `assets/ajd-logo.png` 를 편집기 static 폴더에 읽기 전용으로 연결해 `/static/ajd-logo.png` 로 보인다. 작성 규칙은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ```bash
 cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력

@@ -63,6 +63,11 @@ services:
       # - n8n 2.x 파일 노드는 ~/.n8n-files 아래만 접근 가능
       # - bin/n8n.sh backup 의 DB 덤프·볼륨 백업도 워크플로우에서 읽을 수 있음
       - ${BACKUP_DIR:-../../data/backups}:/home/node/.n8n-files/backups
+      # 스티키 노트 로고: 편집기 static 폴더에 읽기 전용 연결 → 주소 /static/ajd-logo.png
+      # - n8n 스티키는 https:// 와 /static/ 아래 이미지만 표시
+      # - n8n-editor-ui 링크를 거쳐 연결: pnpm 해시가 든 실제 경로가 n8n 버전마다 달라도 유지
+      # - 이미지 크기는 파일 크기 그대로라 50x50 px 파일 사용
+      - ../../assets/ajd-logo.png:/usr/local/lib/node_modules/n8n/node_modules/n8n-editor-ui/dist/static/ajd-logo.png:ro
     depends_on:
       postgres:
         condition: service_healthy

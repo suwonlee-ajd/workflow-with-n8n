@@ -34,6 +34,7 @@
 
 ```text
 root
+├── assets/**           # 이미지 등 정적 파일 (n8n 스티키 노트 로고)
 ├── bin/                # 쉘, 바이너리 등 전체 제어 스크립트
 ├── config/**           # DB, 앱 등 yaml, properties, toml 등 설정 파일
 ├── data/**             # 백업 등 실행 결과물 (git 제외)

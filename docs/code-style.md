@@ -11,7 +11,7 @@
 - 제외: `services/n8n-admin` (외부 리포지토리라 원본 스타일을 따름)
 - 다른 문서에 있는 규칙은 다시 쓰지 않고 링크만 함
   - 커밋·브랜치: [CLAUDE.md](../CLAUDE.md) 'Git Flow, Commit 규칙'
-  - 워크플로우 이름·캔버스 그룹: [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'
+  - 워크플로우 이름·캔버스 그룹·설명 스티키 노트: [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'
 
 ## 1. 공통
 
@@ -245,7 +245,7 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 
 ## 7. n8n 워크플로우
 
-워크플로우 이름과 캔버스 그룹은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'을 따른다. 여기서는 노드와 설정을 다룬다.
+워크플로우 이름, 캔버스 그룹, 설명 스티키 노트(로고·제목·요약)는 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'을 따른다. 여기서는 노드와 설정을 다룬다.
 
 ### 노드 이름
 
