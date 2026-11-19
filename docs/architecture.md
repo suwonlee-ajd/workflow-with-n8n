@@ -173,11 +173,9 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 ### n8n
 
 - 출처: [n8n-io/n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases)
-- 이미지: 로컬 빌드 `n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>` (`services/n8n/Dockerfile`)
+- 이미지: 로컬 빌드 `n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`
   - 공식 이미지 `docker.n8n.io/n8nio/n8n:<N8N_VERSION>` 에 [node 공식 이미지](https://hub.docker.com/_/node) `node:<N8N_NODE_VERSION>-alpine` 의 Node 바이너리만 덮어쓴다.
-  - 이유: 공식 이미지의 Node(2.44.7 은 26.12.1)가 [Node.js 보안 권고](https://asec.ahnlab.com/ko/96589/)(ASEC, 2026-11-17)의 해결 버전 26.13.1 보다 낮다. 최신 2.48.5 도 26.13.0 이다 (2026-11-19 확인).
-  - `bin/n8n.sh start`·`restart` 가 띄울 때마다 빌드한다 (`pull_policy: build`). 바뀐 것이 없으면 캐시를 쓴다.
-  - 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이 되면 빌드가 멈춘다. 그때 공식 이미지로 되돌린다 ([README](../README.md) '4. 버전 업그레이드').
+  - 이유와 되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석, 되돌리는 방법은 [README](../README.md) '4. 버전 업그레이드' 에 있다.
 - 한글 환경 설정 참고: [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)
 - 설정: `services/n8n/.env` (버전 `N8N_VERSION`·`N8N_NODE_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`, `services/n8n/Dockerfile`
 

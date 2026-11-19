@@ -13,16 +13,16 @@
 ### 추가
 
 - `services/n8n/Dockerfile`: n8n 공식 이미지의 Node.js 를 26.13.1 로 교체
-  - 이유: [Node.js 보안 권고](https://asec.ahnlab.com/ko/96589/)(ASEC, 2026-11-17, CVE-2026-123863 등 7건)의 해결 버전보다 공식 이미지의 Node 가 낮음 (2.44.7 은 26.12.1, 최신 2.48.5 도 26.13.0)
-  - 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이거나 메이저가 다르면 빌드 중단
+  - 이유: [Node.js 보안 권고](https://asec.ahnlab.com/ko/96589/)(ASEC, 2026-11-17, CVE-2026-123863 등 7건)의 해결 버전보다 공식 이미지의 Node 가 낮음 (2.44.7 은 26.12.1, 최신 2.48.5·2.49.1 도 26.13.0)
+  - 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이거나 메이저가 다르면 빌드 중단, 교체 뒤 `node -v` 가 다르면 빌드 중단
 - `services/n8n/.dockerignore`: 빌드 컨텍스트 전부 제외 (`.env` 가 빌드로 넘어가지 않도록)
-- `N8N_NODE_VERSION` (`services/n8n/.env`): n8n 이미지에 넣을 Node.js 버전
 
 ### 변경
 
-- `services/n8n/docker-compose.yml`: n8n 서비스에 `build`·`pull_policy: build`. `bin/n8n.sh start`·`restart` 가 띄울 때마다 빌드 (바뀐 것이 없으면 캐시 사용)
+- `services/n8n/docker-compose.yml`: n8n 서비스에 `build`·`pull_policy: never`. 이미지 태그가 없을 때만 빌드
+- `bin/n8n.sh restart`: 컨테이너를 내리기 전에 이미지를 먼저 빌드. 빌드가 실패하면 기존 컨테이너를 그대로 두고 중단
 - n8n-mcp 2.103.0 → 2.103.1 (도구 29개 그대로)
-- 문서: 교체 이유와 공식 이미지로 되돌리는 방법 (`README.md` 0번·4장, `docs/architecture.md`), Compose 빌드 규칙 (`docs/code-style.md` 3장·9장)
+- 문서: 교체 이유·되돌릴 조건은 Dockerfile 주석에 두고 README·`docs/architecture.md` 는 링크, 되돌리는 방법 (`README.md` 4장), Compose 빌드 규칙 (`docs/code-style.md` 3장·9장)
 
 ## [0.10.0] - 2026-11-18
 

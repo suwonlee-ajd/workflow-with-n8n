@@ -58,10 +58,8 @@ root
 0. **버전 고정 (`N8N_VERSION=2.44.7`, `N8N_NODE_VERSION=26.13.1`)**
    - 이미지 태그를 `latest` 대신 stable 버전으로 고정 — 컨테이너 재생성 시 의도치 않은 업그레이드·DB 마이그레이션 방지
    - stable 확인: [n8n releases](https://github.com/n8n-io/n8n/releases)
-   - n8n 컨테이너는 공식 이미지에서 Node.js 만 `N8N_NODE_VERSION` 으로 바꾼 로컬 이미지(`n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`)로 실행 (`services/n8n/Dockerfile`)
-     - 이유: 공식 이미지의 Node 가 [Node.js 보안 권고](https://asec.ahnlab.com/ko/96589/)(ASEC, 2026-11-17)의 해결 버전 26.13.1 보다 낮음 (2.44.7 은 26.12.1, 최신 2.48.5 도 26.13.0 — 2026-11-19 확인)
-     - `start`·`restart` 때마다 빌드 (바뀐 것이 없으면 캐시를 써서 몇 초)
-     - 공식 이미지가 Node 26.13.1 이상을 담으면 공식 이미지로 되돌림 (4장)
+   - n8n 컨테이너는 공식 이미지에서 Node.js 만 `N8N_NODE_VERSION` 으로 바꾼 로컬 이미지(`n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`)로 실행
+     - 이유·되돌릴 조건: `services/n8n/Dockerfile` 맨 위 주석. 되돌리는 방법: 4장
 1. **타임존 (한국 표준시 UTC+9)**
    - `GENERIC_TIMEZONE=Asia/Seoul`: n8n 스케줄 트리거, Cron 노드, 날짜 함수의 기본 시간대
    - `TZ=Asia/Seoul`: 컨테이너 OS 및 Node.js 라이브러리의 시스템 시간대 (로그 및 시스템 시간 일치)
@@ -99,6 +97,7 @@ bin/n8n.sh start
 bin/n8n.sh stop
 
 # 재시작 (환경변수 갱신 시 컨테이너 완전 재생성, 로그 기록은 stop 과 동일)
+# 내리기 전에 n8n 이미지를 다시 빌드하고, 빌드가 실패하면 기존 컨테이너를 그대로 둠
 bin/n8n.sh restart
 
 # 실시간 로그 확인
@@ -151,11 +150,13 @@ bin/n8n.sh import
 ### 4. 버전 업그레이드
 1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
 2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 과 README 의 버전 표기·뱃지도 함께)
-3. `bin/n8n.sh restart` — 새 버전 공식 이미지를 받아 로컬 이미지를 다시 빌드함
+3. `bin/n8n.sh restart` — 새 버전 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너는 그대로)
 
-> **Node 보안 패치 이미지 되돌리기**: n8n 을 올릴 때는 새 공식 이미지의 Node 버전을 먼저 확인합니다 (`docker run --rm --entrypoint node docker.n8n.io/n8nio/n8n:<버전> -v`).
-> `N8N_NODE_VERSION` 이상이면 빌드가 ❌ 메시지와 함께 멈추므로(Node 를 낮추지 않도록), 이때 공식 이미지로 되돌립니다:
-> `services/n8n/Dockerfile`·`.dockerignore` 를 지우고, `docker-compose.yml` 의 n8n `image:` 를 `docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}` 로 바꾼 뒤 `pull_policy`·`build` 와 `.env`·`.env.example` 의 `N8N_NODE_VERSION` 을 지웁니다.
+> **공식 이미지로 되돌리기**: 새 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이면 3단계 빌드가 ❌ 메시지와 함께 멈춥니다 (Node 를 낮추지 않도록).
+> 이때 아래를 고친 뒤 다시 `bin/n8n.sh restart` 합니다.
+> - 지움: `services/n8n/Dockerfile`, `services/n8n/.dockerignore`, `.env`·`.env.example` 의 `N8N_NODE_VERSION`
+> - `services/n8n/docker-compose.yml`: n8n `image:` 를 `docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}` 로 바꾸고 `pull_policy`·`build` 삭제
+> - 문서: 이 README(디렉터리 구조·0번·이 안내·참조 표), `docs/architecture.md`, `docs/code-style.md` 3장·9장, `CLAUDE.md`
 
 > **n8n 3.0 주의** (stable 2026-12 초 예정): npm 설치 지원 종료(Docker 필수), Function·Item Lists·Cron 등 레거시 노드 삭제, 암호화 키 로테이션 기본 활성화 등 breaking change 가 있습니다.
 > 올리기 전에 n8n 화면의 **Settings > Migration Report** 를 확인하고 백업하세요. 참고: [v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)
