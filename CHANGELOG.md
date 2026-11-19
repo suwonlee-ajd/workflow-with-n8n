@@ -2,6 +2,28 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.10.1] - 2026-11-19
+
+### 호환성
+
+- n8n 컨테이너를 공식 이미지 대신 로컬 빌드 이미지 `n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>` 로 실행
+  - 반영: `services/n8n/.env` 에 `N8N_NODE_VERSION=26.13.1` 추가 → `bin/n8n.sh restart` (값이 없으면 compose 가 시작 거부)
+- n8n-mcp 2.103.1: `cd services/n8n-mcp && npm ci` 뒤 Claude Code 세션을 새로 시작
+
+### 추가
+
+- `services/n8n/Dockerfile`: n8n 공식 이미지의 Node.js 를 26.13.1 로 교체
+  - 이유: [Node.js 보안 권고](https://asec.ahnlab.com/ko/96589/)(ASEC, 2026-11-17, CVE-2026-123863 등 7건)의 해결 버전보다 공식 이미지의 Node 가 낮음 (2.44.7 은 26.12.1, 최신 2.48.5 도 26.13.0)
+  - 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이거나 메이저가 다르면 빌드 중단
+- `services/n8n/.dockerignore`: 빌드 컨텍스트 전부 제외 (`.env` 가 빌드로 넘어가지 않도록)
+- `N8N_NODE_VERSION` (`services/n8n/.env`): n8n 이미지에 넣을 Node.js 버전
+
+### 변경
+
+- `services/n8n/docker-compose.yml`: n8n 서비스에 `build`·`pull_policy: build`. `bin/n8n.sh start`·`restart` 가 띄울 때마다 빌드 (바뀐 것이 없으면 캐시 사용)
+- n8n-mcp 2.103.0 → 2.103.1 (도구 29개 그대로)
+- 문서: 교체 이유와 공식 이미지로 되돌리는 방법 (`README.md` 0번·4장, `docs/architecture.md`), Compose 빌드 규칙 (`docs/code-style.md` 3장·9장)
+
 ## [0.10.0] - 2026-11-18
 
 ### 호환성
