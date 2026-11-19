@@ -17,6 +17,7 @@ Docker Compose로 n8n과 PostgreSQL을 띄우고, Claude Code가 n8n-mcp로 워�
 
 ```text
 root
+├── assets/ajd-logo.png              # n8n 스티키 노트 로고 (50x50 px) — compose 가 /static/ajd-logo.png 로 연결 (주요 설정 6번)
 ├── bin/n8n.sh                       # n8n 시작·중지·로그·백업 제어 스크립트
 ├── bin/n8n-admin.sh                 # n8n-admin 대시보드 실행 스크립트 (7장 참고)
 ├── services/n8n/
@@ -77,6 +78,11 @@ root
    - `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 값을 읽음
    - n8n 컨테이너에는 `BACKUP_DIR` 전체를 `~/.n8n-files/backups` 로 연결. 백업 워크플로우도 `bin/n8n.sh backup` 과 같은 경로에 저장
    - 그래서 n8n 워크플로우에서 `bin/n8n.sh backup` 의 볼륨 백업·DB 덤프도 읽을 수 있음
+6. **스티키 노트 로고 (`assets/ajd-logo.png`)**
+   - 워크플로우 설명 스티키 노트 맨 위의 회사 로고. 50x50 px 파일 크기 그대로 보임
+   - compose 가 n8n 편집기의 static 폴더에 읽기 전용으로 연결 → 스티키에는 `![아정당](/static/ajd-logo.png)`
+   - n8n 스티키는 `https://` 와 `/static/` 아래 이미지만 표시하고 크기 지정(HTML)을 막아서 이 방식을 씀
+   - 스티키 작성 규칙(로고·제목·1~2줄 요약): [workflow-builder.md](.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ---
 
@@ -151,6 +157,7 @@ bin/n8n.sh import
 1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
 2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example`, README 의 버전 표기·뱃지, `docs/architecture.md` 서비스 표도 함께)
 3. `bin/n8n.sh restart` — 새 버전 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너는 그대로)
+4. 스티키 노트 로고 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<N8N_PORT>/static/ajd-logo.png` 가 `200` (편집기 폴더 구조가 바뀌면 로고가 깨짐, 주요 설정 6번)
 
 > **공식 이미지로 되돌리기**: 3단계 빌드가 ❌ 메시지로 멈추면 메시지를 따릅니다. 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이거나, 메이저가 바뀌었는데 이미 보안 권고의 해결 버전이면 공식 이미지로 되돌립니다.
 > 아래를 고친 뒤 다시 `bin/n8n.sh restart` 합니다.
