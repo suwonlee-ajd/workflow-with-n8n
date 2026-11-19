@@ -153,6 +153,10 @@ esac
 ## 3. Docker Compose (`services/*/docker-compose.yml`)
 
 - 이미지 태그는 `.env` 변수로 고정. 필수 변수는 `${VAR:?set VAR in .env}` 로 써서 비어 있으면 시작 거부
+- 공식 이미지를 고쳐 쓸 때만 `build` 로 빌드 (현재 n8n 의 Node 교체)
+  - 이미지 이름은 공식 이미지와 구분되는 로컬 이름 (`n8n-local:<태그>`), `pull_policy: build` 로 레지스트리에서 받지 않음
+  - 빌드 인자는 `.env` 변수에서 받고, `.dockerignore` 로 컨텍스트를 전부 제외 (`.env` 보호)
+  - Dockerfile 맨 위 주석에 교체 이유와 되돌릴 조건을 씀
 - `container_name` 은 서비스 이름으로 고정. 스크립트가 이 이름(`n8n`, `n8n-postgres`)을 사용
 - 모든 서비스에 `restart: unless-stopped` 와 `logging: *default-logging`. 로그 설정은 `x-logging` 앵커 하나로 공유
 - 앱 설정은 `env_file: .env` 로 넘김
@@ -392,6 +396,7 @@ git push origin v0.8.0
 |------|------|
 | Bash | `bash -n bin/<스크립트>.sh`, `shellcheck bin/<스크립트>.sh` |
 | Compose | `docker compose --env-file services/n8n/.env -f services/n8n/docker-compose.yml config -q` |
+| Dockerfile | `docker compose --env-file services/n8n/.env -f services/n8n/docker-compose.yml build n8n` |
 | JSON | `jq empty <파일>` |
 | n8n 워크플로우 | `n8n_validate_workflow` (ID 기준) |
 

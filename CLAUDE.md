@@ -28,7 +28,7 @@
 | n8n-mcp | Claude Code가 `.mcp.json`으로 실행 (stdio, 포트 없음) |
 | n8n-admin | 관리 대시보드, `http://localhost:3000` — git 서브모듈, 설정은 `services/n8n-admin/.env` |
 
-버전은 `services/n8n/.env.example`의 `N8N_VERSION`과 `services/n8n-mcp/package.json`에 고정한다.
+버전은 `services/n8n/.env.example`의 `N8N_VERSION`·`N8N_NODE_VERSION`(n8n 이미지에 넣는 Node.js)과 `services/n8n-mcp/package.json`에 고정한다.
 
 ## 표준 아키텍처 (디렉터리 구조)
 

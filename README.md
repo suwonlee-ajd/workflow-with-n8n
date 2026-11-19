@@ -23,6 +23,8 @@ root
 │   ├── .env                         # 환경변수 (버전·포트·타임존·로케일·DB 계정·암호화 키·API 키) — 비밀값 포함, git 제외
 │   ├── .env.example                 # .env 템플릿 (비밀값은 비워 둠) — cp .env.example .env 후 ★ 항목 채우기
 │   ├── docker-compose.yml           # n8n + PostgreSQL 컨테이너 정의
+│   ├── Dockerfile                   # n8n 공식 이미지의 Node.js 만 보안 패치 버전으로 교체 (주요 설정 0번)
+│   ├── .dockerignore                # 빌드 컨텍스트 전부 제외 — .env 가 빌드로 넘어가지 않도록
 │   └── workflows/                   # bin/n8n.sh export 가 만드는 워크플로우 JSON 폴더 (현재 저장소에는 없음, 3장 참고)
 ├── services/n8n-mcp/                # Claude Code 용 n8n MCP 서버 (6장 참고)
 ├── services/n8n-admin/              # n8n 관리 대시보드 — 외부 리포지토리를 git 서브모듈로 연결 (7장 참고)
@@ -50,12 +52,16 @@ root
 
 > 모든 설정은 `services/n8n/.env` 한 곳에서 관리합니다. n8n 컨테이너는 `env_file` 로 이 파일을 그대로 읽습니다
 > (`LANG`·`TZ` 처럼 호스트 셸에도 흔히 있는 값이 `.env` 를 덮어쓰지 않도록 n8n 설정값에는 compose `${VAR}` 보간을 쓰지 않음).
-> 예외로 compose 파일 자체가 알아야 하는 값만 `${VAR}` 보간으로 받습니다: 이미지 태그(`N8N_VERSION`), 포트 매핑(`N8N_PORT`),
+> 예외로 compose 파일 자체가 알아야 하는 값만 `${VAR}` 보간으로 받습니다: 이미지 태그·빌드 인자(`N8N_VERSION`, `N8N_NODE_VERSION`), 포트 매핑(`N8N_PORT`),
 > postgres·n8n 두 컨테이너가 공유하는 DB 접속 정보(`POSTGRES_*`), 백업 폴더 연결(`BACKUP_DIR`).
 
-0. **버전 고정 (`N8N_VERSION=2.44.7`)**
+0. **버전 고정 (`N8N_VERSION=2.44.7`, `N8N_NODE_VERSION=26.13.1`)**
    - 이미지 태그를 `latest` 대신 stable 버전으로 고정 — 컨테이너 재생성 시 의도치 않은 업그레이드·DB 마이그레이션 방지
    - stable 확인: [n8n releases](https://github.com/n8n-io/n8n/releases)
+   - n8n 컨테이너는 공식 이미지에서 Node.js 만 `N8N_NODE_VERSION` 으로 바꾼 로컬 이미지(`n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`)로 실행 (`services/n8n/Dockerfile`)
+     - 이유: 공식 이미지의 Node 가 [Node.js 보안 권고](https://asec.ahnlab.com/ko/96589/)(ASEC, 2026-11-17)의 해결 버전 26.13.1 보다 낮음 (2.44.7 은 26.12.1, 최신 2.48.5 도 26.13.0 — 2026-11-19 확인)
+     - `start`·`restart` 때마다 빌드 (바뀐 것이 없으면 캐시를 써서 몇 초)
+     - 공식 이미지가 Node 26.13.1 이상을 담으면 공식 이미지로 되돌림 (4장)
 1. **타임존 (한국 표준시 UTC+9)**
    - `GENERIC_TIMEZONE=Asia/Seoul`: n8n 스케줄 트리거, Cron 노드, 날짜 함수의 기본 시간대
    - `TZ=Asia/Seoul`: 컨테이너 OS 및 Node.js 라이브러리의 시스템 시간대 (로그 및 시스템 시간 일치)
@@ -145,7 +151,11 @@ bin/n8n.sh import
 ### 4. 버전 업그레이드
 1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
 2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 과 README 의 버전 표기·뱃지도 함께)
-3. `bin/n8n.sh restart` — 새 버전 이미지는 자동으로 pull 됨
+3. `bin/n8n.sh restart` — 새 버전 공식 이미지를 받아 로컬 이미지를 다시 빌드함
+
+> **Node 보안 패치 이미지 되돌리기**: n8n 을 올릴 때는 새 공식 이미지의 Node 버전을 먼저 확인합니다 (`docker run --rm --entrypoint node docker.n8n.io/n8nio/n8n:<버전> -v`).
+> `N8N_NODE_VERSION` 이상이면 빌드가 ❌ 메시지와 함께 멈추므로(Node 를 낮추지 않도록), 이때 공식 이미지로 되돌립니다:
+> `services/n8n/Dockerfile`·`.dockerignore` 를 지우고, `docker-compose.yml` 의 n8n `image:` 를 `docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}` 로 바꾼 뒤 `pull_policy`·`build` 와 `.env`·`.env.example` 의 `N8N_NODE_VERSION` 을 지웁니다.
 
 > **n8n 3.0 주의** (stable 2026-12 초 예정): npm 설치 지원 종료(Docker 필수), Function·Item Lists·Cron 등 레거시 노드 삭제, 암호화 키 로테이션 기본 활성화 등 breaking change 가 있습니다.
 > 올리기 전에 n8n 화면의 **Settings > Migration Report** 를 확인하고 백업하세요. 참고: [v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)
@@ -290,6 +300,7 @@ const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 | [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/) | 한국 표준시(KST)·UTF-8 한글 문자 인코딩 설정의 기준. '💡 한글 관련 실무 팁'의 출처 |
 | [n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases) | 워크플로우 엔진. stable 릴리스 버전으로 고정 |
 | [n8n v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes) | 3.0 업그레이드 전 확인 사항 (4장) |
+| [node 공식 이미지](https://hub.docker.com/_/node) · [ASEC Node.js 보안 업데이트 권고](https://asec.ahnlab.com/ko/96589/) | n8n 이미지에 넣는 Node.js 와 교체 이유 (주요 설정 0번) |
 | [postgres 공식 이미지](https://hub.docker.com/_/postgres) · [PostgreSQL 17 문서](https://www.postgresql.org/docs/17/) | n8n DB (5장) |
 | [czlonkowski/n8n-mcp](https://github.com/czlonkowski/n8n-mcp) | Claude Code 용 n8n MCP 서버 (6장) |
 | [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills) | `n8n-mcp-skills` 플러그인 (6장) |

@@ -28,8 +28,16 @@ services:
       retries: 10
 
   n8n:
-    # 버전은 .env 의 N8N_VERSION 으로 고정
-    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}
+    # 공식 n8n 이미지의 Node 만 교체한 로컬 이미지 (같은 폴더의 Dockerfile, 이유·되돌릴 조건도 거기)
+    # - 버전은 .env 의 N8N_VERSION·N8N_NODE_VERSION 으로 고정
+    # - pull_policy build: 레지스트리에서 받지 않고 기동할 때마다 빌드 (바뀐 것이 없으면 캐시 사용)
+    image: n8n-local:${N8N_VERSION:?set N8N_VERSION in .env}-node${N8N_NODE_VERSION:?set N8N_NODE_VERSION in .env}
+    pull_policy: build
+    build:
+      context: .
+      args:
+        N8N_VERSION: ${N8N_VERSION}
+        N8N_NODE_VERSION: ${N8N_NODE_VERSION}
     container_name: n8n
     restart: unless-stopped
     logging: *default-logging
