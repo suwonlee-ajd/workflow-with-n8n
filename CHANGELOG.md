@@ -2,6 +2,23 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.11.0] - 2026-11-19
+
+### 호환성
+
+- 반영: `bin/n8n.sh restart` (로고 파일 연결)
+
+### 추가
+
+- `assets/ajd-logo.png`: n8n 스티키 노트용 회사 로고 (50x50 px). 표준 디렉터리 구조에 `assets/` 추가
+- `services/n8n/docker-compose.yml`: 로고를 n8n 편집기 static 폴더에 읽기 전용 연결 → `/static/ajd-logo.png`. 컨테이너를 다시 만들어도 유지
+- 설명 스티키 노트 규칙 (`.claude/skills/n8n/references/workflow-builder.md`): 모든 워크플로우의 캔버스 왼쪽 위에 로고·제목·1~2줄 요약
+
+### 변경
+
+- `README.md`: 주요 설정 6번(스티키 노트 로고), 4장 버전 업그레이드에 로고 확인 단계
+- `docs/architecture.md`, `docs/code-style.md`, `CLAUDE.md`: 로고 연결, 스티키 규칙 링크, `assets/` 디렉터리
+
 ## [0.10.1] - 2026-11-19
 
 ### 호환성
