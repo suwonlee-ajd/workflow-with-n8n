@@ -49,7 +49,7 @@
 |--------|------|-----------|------|------|
 | n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 5678 | 2.44.7 |
 | PostgreSQL | n8n 데이터 저장 | Docker 컨테이너 `n8n-postgres` | 없음 (Docker 내부 5432) | 17 |
-| n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.0 |
+| n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.1 |
 | n8n-mcp-skills | n8n-mcp 사용법 스킬 묶음 | Claude Code 플러그인 | 없음 | 1.37.1 |
 | n8n-admin (부가) | 워크플로우·유저·크레덴셜 관리 대시보드 | 호스트에서 Next.js 실행 | 3000 | 1.2.0 |
 

@@ -5,7 +5,7 @@
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-required-2496ED?logo=docker&logoColor=white)
 ![n8n](https://img.shields.io/badge/n8n-2.44.7-EA4B71?logo=n8n&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-n8n--mcp%202.103.0-D97757?logo=claude&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-n8n--mcp%202.103.1-D97757?logo=claude&logoColor=white)
 ![Node](https://img.shields.io/badge/node-%5E22.23%20%7C%20%5E24.22%20%7C%20%3E%3D26.12-brightgreen?logo=nodedotjs&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-required%20%28n8n--admin%29-orange?logo=pnpm&logoColor=white)
 
@@ -193,7 +193,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 - `.claude/settings.json` 은 n8n-mcp 도구 사용법 스킬 묶음인 `n8n-mcp-skills` 플러그인을 켭니다.
 - n8n 작업 규칙: [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)
 
-#### n8n-mcp 도구 (2.103.0 기준 29개)
+#### n8n-mcp 도구 (2.103.1 기준 29개)
 
 | 그룹 | 도구 |
 |---|---|

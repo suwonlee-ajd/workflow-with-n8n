@@ -3,6 +3,6 @@
   "private": true,
   "description": "Claude Code 용 n8n MCP 서버 (https://github.com/czlonkowski/n8n-mcp) — .mcp.json 에서 실행",
   "dependencies": {
-    "n8n-mcp": "2.103.0"
+    "n8n-mcp": "2.103.1"
   }
 }
