@@ -84,8 +84,8 @@ case "$1" in
     ;;
   restart)
     echo "🔄 n8n 컨테이너를 완전히 재생성하여 재시작합니다 (services/n8n/.env 환경변수 갱신)..."
-    # 이미지를 먼저 빌드
-    # - 실패하면(Dockerfile 의 Node 버전 확인 등) 실행 중인 컨테이너를 내리지 않고 중단
+    # 빌드하는 이미지가 있으면 먼저 빌드 (없으면 아무것도 안 함)
+    # - 실패하면 실행 중인 컨테이너를 내리지 않고 중단
     # - Dockerfile 을 고친 내용도 여기서 반영
     compose build
     compose stop

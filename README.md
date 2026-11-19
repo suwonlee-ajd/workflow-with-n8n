@@ -149,14 +149,15 @@ bin/n8n.sh import
 
 ### 4. 버전 업그레이드
 1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
-2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 과 README 의 버전 표기·뱃지도 함께)
+2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example`, README 의 버전 표기·뱃지, `docs/architecture.md` 서비스 표도 함께)
 3. `bin/n8n.sh restart` — 새 버전 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너는 그대로)
 
-> **공식 이미지로 되돌리기**: 새 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이면 3단계 빌드가 ❌ 메시지와 함께 멈춥니다 (Node 를 낮추지 않도록).
-> 이때 아래를 고친 뒤 다시 `bin/n8n.sh restart` 합니다.
+> **공식 이미지로 되돌리기**: 3단계 빌드가 ❌ 메시지로 멈추면 메시지를 따릅니다. 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이거나, 메이저가 바뀌었는데 이미 보안 권고의 해결 버전이면 공식 이미지로 되돌립니다.
+> 아래를 고친 뒤 다시 `bin/n8n.sh restart` 합니다.
 > - 지움: `services/n8n/Dockerfile`, `services/n8n/.dockerignore`, `.env`·`.env.example` 의 `N8N_NODE_VERSION`
 > - `services/n8n/docker-compose.yml`: n8n `image:` 를 `docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}` 로 바꾸고 `pull_policy`·`build` 삭제
-> - 문서: 이 README(디렉터리 구조·0번·이 안내·참조 표), `docs/architecture.md`, `docs/code-style.md` 3장·9장, `CLAUDE.md`
+> - 문서·주석: `git grep -n -E 'N8N_NODE_VERSION|Dockerfile|n8n-local|빌드'` 로 찾은 곳 (README, `docs/`, `CLAUDE.md`, compose·`.env.example` 주석)
+> - 쓰지 않게 된 로컬 이미지는 `docker images n8n-local` 로 확인한 뒤 지움
 
 > **n8n 3.0 주의** (stable 2026-12 초 예정): npm 설치 지원 종료(Docker 필수), Function·Item Lists·Cron 등 레거시 노드 삭제, 암호화 키 로테이션 기본 활성화 등 breaking change 가 있습니다.
 > 올리기 전에 n8n 화면의 **Settings > Migration Report** 를 확인하고 백업하세요. 참고: [v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)
@@ -185,6 +186,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
    ```
    버전은 `package.json` 에 고정. 올릴 때는 버전을 바꾸고 `npm install` 후 Claude Code 세션을 새로 시작합니다.
    README 맨 위 뱃지의 n8n-mcp 버전과 Node 요구 버전(`node_modules/n8n-mcp/package.json` 의 `engines`)도 함께 고칩니다.
+   n8n-mcp 는 호스트 Node 로 실행되므로, 호스트 Node 는 `engines` 범위 안에서 보안 권고의 해결 버전 이상을 씁니다 (2026-11 기준 22.23.5·24.22.3·26.13.1 이상, 근거는 `services/n8n/Dockerfile` 주석).
 2. **API 키**: n8n 화면 **Settings > n8n API** 에서 키를 만들어 `services/n8n/.env` 의 `N8N_API_KEY` 에 넣습니다.
    `.mcp.json` 은 서버를 띄울 때 이 값을 `.env` 에서 읽으므로 `.mcp.json` 에는 비밀값이 없습니다.
 3. **연결 확인**: `.mcp.json` 은 세션 시작 때만 읽힙니다. Claude Code 를 새로 열고 프로젝트 MCP 서버(`n8n-mcp`) 사용을 승인한 뒤 `/mcp` 로 연결 상태를 확인합니다.
