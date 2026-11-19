@@ -2,8 +2,8 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.10.0 |
-| 최종 수정 | 2026-11-18 |
+| 문서 버전 | 0.10.1 |
+| 최종 수정 | 2026-11-19 |
 
 이 저장소의 스크립트, 설정 파일, 문서, n8n 워크플로우, PR 메시지·버전 태그를 쓸 때 따르는 규칙이다. 현재 코드에서 실제로 쓰는 방식을 정리한 초안이며, 결정을 미룬 것은 마지막 '보류'에 모았다.
 
@@ -23,7 +23,7 @@
 | 파일 이름 | 영문 소문자, 단어는 하이픈으로 연결 (`n8n-admin.sh`, `code-style.md`) |
 | 경로 | 프로젝트 루트 기준 상대 경로 (`services/n8n/.env`) |
 | 비밀값 | `.env`(git 제외)에만 둠. 코드·문서·커밋·워크플로우 파라미터에는 쓰지 않음 |
-| 버전 | 정확한 버전으로 고정 (`N8N_VERSION=2.44.7`, `"n8n-mcp": "2.103.0"`). `latest`, `^`, `~` 쓰지 않음 |
+| 버전 | 정확한 버전으로 고정 (`N8N_VERSION=2.44.7`, `"n8n-mcp": "2.103.1"`). `latest`, `^`, `~` 쓰지 않음 |
 
 ### 주석
 
@@ -153,10 +153,11 @@ esac
 ## 3. Docker Compose (`services/*/docker-compose.yml`)
 
 - 이미지 태그는 `.env` 변수로 고정. 필수 변수는 `${VAR:?set VAR in .env}` 로 써서 비어 있으면 시작 거부
+- 공식 이미지를 고쳐 써야 할 때만 `build`. 이미지 이름은 공식 이미지와 구분되는 로컬 이름, `pull_policy: never` 로 레지스트리에서 받지 않음 (예: `services/n8n/Dockerfile`)
 - `container_name` 은 서비스 이름으로 고정. 스크립트가 이 이름(`n8n`, `n8n-postgres`)을 사용
 - 모든 서비스에 `restart: unless-stopped` 와 `logging: *default-logging`. 로그 설정은 `x-logging` 앵커 하나로 공유
 - 앱 설정은 `env_file: .env` 로 넘김
-  - `${VAR}` 보간은 compose 가 직접 알아야 하는 값에만: 이미지 태그, 포트, 컨테이너끼리 공유하는 DB 접속 정보
+  - `${VAR}` 보간은 compose 가 직접 알아야 하는 값에만: 이미지 태그·빌드 인자, 포트, 컨테이너끼리 공유하는 DB 접속 정보, 백업 폴더 연결
   - 이유: 호스트 셸의 `LANG`·`TZ` 같은 값이 `.env` 를 덮어쓰지 않도록
 - 컨테이너 안에서 확장할 변수는 `$$` 로 표기 (`pg_isready -U $${POSTGRES_USER}`)
 - 볼륨 이름은 `name:` 으로 고정
@@ -238,7 +239,7 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 - 비교와 목록은 표로. 구성도와 디렉터리 트리는 ```` ```text ````, 명령은 ```` ```bash ```` 블록
 - 코드, 경로, 명령, 키, 노드 이름은 백틱으로 감쌈
 - 다른 문서는 상대 경로로 링크. 같은 규칙을 두 곳에 쓰지 않고 원본 문서에 링크
-- 버전에 따라 달라지는 내용에는 기준 버전 표시 (`n8n-mcp 2.103.0 기준`)
+- 버전에 따라 달라지는 내용에는 기준 버전 표시 (`n8n-mcp 2.103.1 기준`)
 - 새 문서를 만들면 [CLAUDE.md](../CLAUDE.md) '개요' 표와 [README](../README.md) '디렉터리 구조'에 등록
 - 예시에는 실제 비밀값이나 개인 정보 대신 가짜 값 사용 (`admin@co.kr`)
 
@@ -392,6 +393,7 @@ git push origin v0.8.0
 |------|------|
 | Bash | `bash -n bin/<스크립트>.sh`, `shellcheck bin/<스크립트>.sh` |
 | Compose | `docker compose --env-file services/n8n/.env -f services/n8n/docker-compose.yml config -q` |
+| Dockerfile | `docker compose --env-file services/n8n/.env -f services/n8n/docker-compose.yml build --check n8n` (빌드하지 않고 검사만) |
 | JSON | `jq empty <파일>` |
 | n8n 워크플로우 | `n8n_validate_workflow` (ID 기준) |
 

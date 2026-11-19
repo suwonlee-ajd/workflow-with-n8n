@@ -2,8 +2,8 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.10.0 |
-| 최종 수정 | 2026-11-18 |
+| 문서 버전 | 0.10.1 |
+| 최종 수정 | 2026-11-19 |
 
 이 프로젝트를 이루는 서비스와 그 연결 관계, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
 
@@ -47,9 +47,9 @@
 
 | 서비스 | 역할 | 실행 방식 | 포트 | 버전 |
 |--------|------|-----------|------|------|
-| n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 5678 | 2.44.7 |
+| n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 5678 | 2.44.7 (Node 26.13.1 로 교체) |
 | PostgreSQL | n8n 데이터 저장 | Docker 컨테이너 `n8n-postgres` | 없음 (Docker 내부 5432) | 17 |
-| n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.0 |
+| n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.1 |
 | n8n-mcp-skills | n8n-mcp 사용법 스킬 묶음 | Claude Code 플러그인 | 없음 | 1.37.1 |
 | n8n-admin (부가) | 워크플로우·유저·크레덴셜 관리 대시보드 | 호스트에서 Next.js 실행 | 3000 | 1.2.0 |
 
@@ -173,9 +173,11 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 ### n8n
 
 - 출처: [n8n-io/n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases)
-- 이미지: `docker.n8n.io/n8nio/n8n:<N8N_VERSION>`
+- 이미지: 로컬 빌드 `n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`
+  - 공식 이미지 `docker.n8n.io/n8nio/n8n:<N8N_VERSION>` 에 [node 공식 이미지](https://hub.docker.com/_/node) `node:<N8N_NODE_VERSION>-alpine` 의 Node 바이너리만 덮어쓴다.
+  - 이유와 되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석, 되돌리는 방법은 [README](../README.md) '4. 버전 업그레이드' 에 있다.
 - 한글 환경 설정 참고: [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)
-- 설정: `services/n8n/.env` (버전 `N8N_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`
+- 설정: `services/n8n/.env` (버전 `N8N_VERSION`·`N8N_NODE_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`, `services/n8n/Dockerfile`
 
 ```bash
 cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력

@@ -5,7 +5,7 @@
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-required-2496ED?logo=docker&logoColor=white)
 ![n8n](https://img.shields.io/badge/n8n-2.44.7-EA4B71?logo=n8n&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-n8n--mcp%202.103.0-D97757?logo=claude&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-n8n--mcp%202.103.1-D97757?logo=claude&logoColor=white)
 ![Node](https://img.shields.io/badge/node-%5E22.23%20%7C%20%5E24.22%20%7C%20%3E%3D26.12-brightgreen?logo=nodedotjs&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-required%20%28n8n--admin%29-orange?logo=pnpm&logoColor=white)
 
@@ -23,6 +23,8 @@ root
 │   ├── .env                         # 환경변수 (버전·포트·타임존·로케일·DB 계정·암호화 키·API 키) — 비밀값 포함, git 제외
 │   ├── .env.example                 # .env 템플릿 (비밀값은 비워 둠) — cp .env.example .env 후 ★ 항목 채우기
 │   ├── docker-compose.yml           # n8n + PostgreSQL 컨테이너 정의
+│   ├── Dockerfile                   # n8n 공식 이미지의 Node.js 만 보안 패치 버전으로 교체 (주요 설정 0번)
+│   ├── .dockerignore                # 빌드 컨텍스트 전부 제외 — .env 가 빌드로 넘어가지 않도록
 │   └── workflows/                   # bin/n8n.sh export 가 만드는 워크플로우 JSON 폴더 (현재 저장소에는 없음, 3장 참고)
 ├── services/n8n-mcp/                # Claude Code 용 n8n MCP 서버 (6장 참고)
 ├── services/n8n-admin/              # n8n 관리 대시보드 — 외부 리포지토리를 git 서브모듈로 연결 (7장 참고)
@@ -50,12 +52,14 @@ root
 
 > 모든 설정은 `services/n8n/.env` 한 곳에서 관리합니다. n8n 컨테이너는 `env_file` 로 이 파일을 그대로 읽습니다
 > (`LANG`·`TZ` 처럼 호스트 셸에도 흔히 있는 값이 `.env` 를 덮어쓰지 않도록 n8n 설정값에는 compose `${VAR}` 보간을 쓰지 않음).
-> 예외로 compose 파일 자체가 알아야 하는 값만 `${VAR}` 보간으로 받습니다: 이미지 태그(`N8N_VERSION`), 포트 매핑(`N8N_PORT`),
+> 예외로 compose 파일 자체가 알아야 하는 값만 `${VAR}` 보간으로 받습니다: 이미지 태그·빌드 인자(`N8N_VERSION`, `N8N_NODE_VERSION`), 포트 매핑(`N8N_PORT`),
 > postgres·n8n 두 컨테이너가 공유하는 DB 접속 정보(`POSTGRES_*`), 백업 폴더 연결(`BACKUP_DIR`).
 
-0. **버전 고정 (`N8N_VERSION=2.44.7`)**
+0. **버전 고정 (`N8N_VERSION=2.44.7`, `N8N_NODE_VERSION=26.13.1`)**
    - 이미지 태그를 `latest` 대신 stable 버전으로 고정 — 컨테이너 재생성 시 의도치 않은 업그레이드·DB 마이그레이션 방지
    - stable 확인: [n8n releases](https://github.com/n8n-io/n8n/releases)
+   - n8n 컨테이너는 공식 이미지에서 Node.js 만 `N8N_NODE_VERSION` 으로 바꾼 로컬 이미지(`n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`)로 실행
+     - 이유·되돌릴 조건: `services/n8n/Dockerfile` 맨 위 주석. 되돌리는 방법: 4장
 1. **타임존 (한국 표준시 UTC+9)**
    - `GENERIC_TIMEZONE=Asia/Seoul`: n8n 스케줄 트리거, Cron 노드, 날짜 함수의 기본 시간대
    - `TZ=Asia/Seoul`: 컨테이너 OS 및 Node.js 라이브러리의 시스템 시간대 (로그 및 시스템 시간 일치)
@@ -93,6 +97,7 @@ bin/n8n.sh start
 bin/n8n.sh stop
 
 # 재시작 (환경변수 갱신 시 컨테이너 완전 재생성, 로그 기록은 stop 과 동일)
+# 내리기 전에 n8n 이미지를 다시 빌드하고, 빌드가 실패하면 기존 컨테이너를 그대로 둠
 bin/n8n.sh restart
 
 # 실시간 로그 확인
@@ -144,8 +149,15 @@ bin/n8n.sh import
 
 ### 4. 버전 업그레이드
 1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
-2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example` 과 README 의 버전 표기·뱃지도 함께)
-3. `bin/n8n.sh restart` — 새 버전 이미지는 자동으로 pull 됨
+2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example`, README 의 버전 표기·뱃지, `docs/architecture.md` 서비스 표도 함께)
+3. `bin/n8n.sh restart` — 새 버전 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너는 그대로)
+
+> **공식 이미지로 되돌리기**: 3단계 빌드가 ❌ 메시지로 멈추면 메시지를 따릅니다. 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이거나, 메이저가 바뀌었는데 이미 보안 권고의 해결 버전이면 공식 이미지로 되돌립니다.
+> 아래를 고친 뒤 다시 `bin/n8n.sh restart` 합니다.
+> - 지움: `services/n8n/Dockerfile`, `services/n8n/.dockerignore`, `.env`·`.env.example` 의 `N8N_NODE_VERSION`
+> - `services/n8n/docker-compose.yml`: n8n `image:` 를 `docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}` 로 바꾸고 `pull_policy`·`build` 삭제
+> - 문서·주석: `git grep -n -E 'N8N_NODE_VERSION|Dockerfile|n8n-local|빌드'` 로 찾은 곳 (README, `docs/`, `CLAUDE.md`, compose·`.env.example` 주석)
+> - 쓰지 않게 된 로컬 이미지는 `docker images n8n-local` 로 확인한 뒤 지움
 
 > **n8n 3.0 주의** (stable 2026-12 초 예정): npm 설치 지원 종료(Docker 필수), Function·Item Lists·Cron 등 레거시 노드 삭제, 암호화 키 로테이션 기본 활성화 등 breaking change 가 있습니다.
 > 올리기 전에 n8n 화면의 **Settings > Migration Report** 를 확인하고 백업하세요. 참고: [v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)
@@ -174,6 +186,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
    ```
    버전은 `package.json` 에 고정. 올릴 때는 버전을 바꾸고 `npm install` 후 Claude Code 세션을 새로 시작합니다.
    README 맨 위 뱃지의 n8n-mcp 버전과 Node 요구 버전(`node_modules/n8n-mcp/package.json` 의 `engines`)도 함께 고칩니다.
+   n8n-mcp 는 호스트 Node 로 실행되므로, 호스트 Node 는 `engines` 범위 안에서 보안 권고의 해결 버전 이상을 씁니다 (2026-11 기준 22.23.5·24.22.3·26.13.1 이상, 근거는 `services/n8n/Dockerfile` 주석).
 2. **API 키**: n8n 화면 **Settings > n8n API** 에서 키를 만들어 `services/n8n/.env` 의 `N8N_API_KEY` 에 넣습니다.
    `.mcp.json` 은 서버를 띄울 때 이 값을 `.env` 에서 읽으므로 `.mcp.json` 에는 비밀값이 없습니다.
 3. **연결 확인**: `.mcp.json` 은 세션 시작 때만 읽힙니다. Claude Code 를 새로 열고 프로젝트 MCP 서버(`n8n-mcp`) 사용을 승인한 뒤 `/mcp` 로 연결 상태를 확인합니다.
@@ -193,7 +206,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 - `.claude/settings.json` 은 n8n-mcp 도구 사용법 스킬 묶음인 `n8n-mcp-skills` 플러그인을 켭니다.
 - n8n 작업 규칙: [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)
 
-#### n8n-mcp 도구 (2.103.0 기준 29개)
+#### n8n-mcp 도구 (2.103.1 기준 29개)
 
 | 그룹 | 도구 |
 |---|---|
@@ -290,6 +303,7 @@ const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 | [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/) | 한국 표준시(KST)·UTF-8 한글 문자 인코딩 설정의 기준. '💡 한글 관련 실무 팁'의 출처 |
 | [n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases) | 워크플로우 엔진. stable 릴리스 버전으로 고정 |
 | [n8n v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes) | 3.0 업그레이드 전 확인 사항 (4장) |
+| [node 공식 이미지](https://hub.docker.com/_/node) · [ASEC Node.js 보안 업데이트 권고](https://asec.ahnlab.com/ko/96589/) | n8n 이미지에 넣는 Node.js 와 교체 이유 (주요 설정 0번) |
 | [postgres 공식 이미지](https://hub.docker.com/_/postgres) · [PostgreSQL 17 문서](https://www.postgresql.org/docs/17/) | n8n DB (5장) |
 | [czlonkowski/n8n-mcp](https://github.com/czlonkowski/n8n-mcp) | Claude Code 용 n8n MCP 서버 (6장) |
 | [czlonkowski/n8n-skills](https://github.com/czlonkowski/n8n-skills) | `n8n-mcp-skills` 플러그인 (6장) |
