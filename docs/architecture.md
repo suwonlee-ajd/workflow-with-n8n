@@ -2,8 +2,8 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.11.1 |
-| 최종 수정 | 2026-11-19 |
+| 문서 버전 | 0.11.2 |
+| 최종 수정 | 2026-11-20 |
 
 이 프로젝트를 이루는 서비스와 그 연결 관계, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
 
@@ -76,27 +76,40 @@
 
 | 데이터 | 위치 | 백업 |
 |--------|------|------|
-| 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` → `data/backups/<일시>/n8n-postgres/n8n_db_<시각>.sql.gz` |
-| 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup` → `data/backups/<일시>/n8n/n8n_backup_<시각>.tar.gz`, 백업 워크플로우 |
-| 워크플로우 JSON (백업) | — | `bin/n8n.sh backup` → `data/backups/<일시>/n8n/n8n_workflows_<시각>/<ID>.json` |
-| 볼륨·워크플로우·실행 기록·데이터 테이블 (백업 워크플로우) | — | `[메인] 운영: n8n 데이터 백업` 매일 18:00·수동 실행 → `data/backups/<일시>/n8n/` 에 `n8n_backup_<시각>.tar.gz`, `n8n_workflows_<시각>/<ID>.json`, `n8n_executions_<시각>.json`, `n8n_datatables_<시각>.json` |
+| 워크플로우, 크레덴셜, 실행 기록, 유저 | Docker 볼륨 `n8n_postgres_data` | `bin/n8n.sh backup` 의 DB 덤프 |
+| 크레덴셜 암호화 키, 이벤트 로그 | Docker 볼륨 `n8n_data` | `bin/n8n.sh backup`, 백업 워크플로우의 볼륨 백업 |
 | 워크플로우 JSON (git 이력용) | `services/n8n/workflows/` — 현재 저장소에는 없음 | 필요할 때 `bin/n8n.sh export` 로 만들어 커밋 |
 | 컨테이너 로그 | Docker, 그리고 `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` | 백업 대상 아님. [logging.md](logging.md) 참고 |
 | 비밀값 | `services/n8n/.env`, `services/n8n-admin/.env` | git 제외. 따로 보관 |
 
-백업은 `data/backups/<일시 YYYYMMDDHHMM>/<서비스명>/` 아래에, 로그는 `logs/` 아래에 따로 둔다. `bin/n8n.sh backup` 과 백업 워크플로우가 같은 규칙을 쓴다. 서비스명은 컨테이너 이름(`n8n`, `n8n-postgres`)이다.
+### 백업
 
-백업 위치는 `services/n8n/.env` 의 `BACKUP_DIR` 로 바꿀 수 있다. 비워 두면 `data/backups` 이고, 다른 위치는 절대 경로로 쓴다. `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 값을 읽는다.
+`bin/n8n.sh backup` 과 백업 워크플로우 `[메인] 운영: n8n 데이터 백업` 이 같은 폴더 `<BACKUP_DIR>/<YYYYMMDDHHMM>/<서비스명>/` 에 저장한다.
 
-n8n 컨테이너에는 `<BACKUP_DIR>` 전체를 `~/.n8n-files/backups` 로 연결한다. 백업 워크플로우가 `bin/n8n.sh backup` 과 같은 경로에 저장하도록 하기 위해서다. n8n 2.x 의 파일 노드는 `~/.n8n-files` 아래만 쓸 수 있어서 이 경로를 쓴다.
-
-전체를 연결하므로 `bin/n8n.sh backup` 의 볼륨 백업(암호화 키)과 DB 덤프도 n8n 워크플로우에서 읽을 수 있다. 백업 워크플로우가 이미 볼륨 백업을 만들고 Code 노드는 원래 `~/.n8n` 을 읽을 수 있어서, 새로 보이는 것은 사실상 DB 덤프다.
-
-같은 분에 둘이 함께 실행되면 한 폴더에 두 묶음이 섞인다. 파일 이름의 `<시각>`(초 단위)이 달라 서로 덮어쓰지는 않는다.
-
-백업 워크플로우의 Code 노드는 `fs`·`child_process` 를 쓰므로 `.env` 의 `NODE_FUNCTION_ALLOW_BUILTIN=*` 가 필요하다. n8n_data 볼륨은 Code 노드가 tar 로 묶는다. n8n 컨테이너에는 `pg_dump` 가 없어 DB 덤프는 만들지 않는다.
-
-암호화 키(`N8N_ENCRYPTION_KEY`)를 잃으면 DB 백업이 있어도 크레덴셜을 복호화할 수 없다. 볼륨 백업과 DB 백업을 함께 보관한다.
+- 주의
+  - 암호화 키(`N8N_ENCRYPTION_KEY`)를 잃으면 DB 백업이 있어도 크레덴셜 복호화 불가. 볼륨 백업과 DB 백업을 함께 보관
+  - 18:00 에 Mac 이 절전 중이면 그날 백업은 건너뜀. 스케줄러가 놓친 실행을 다시 돌리지 않음
+  - 백업 파일은 자동으로 지워지지 않음
+- 위치
+  - `BACKUP_DIR`: `services/n8n/.env` 에서 지정. 비우면 `data/backups`, 다른 위치는 절대 경로
+  - `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 `BACKUP_DIR` 을 읽음
+  - 서비스명: 컨테이너 이름 `n8n`, `n8n-postgres`
+- `bin/n8n.sh backup` (수동 실행)
+  - `n8n-postgres/n8n_db_<시각>.sql.gz`: DB 덤프
+  - `n8n/n8n_backup_<시각>.tar.gz`: `n8n_data` 볼륨
+  - `n8n/n8n_workflows_<시각>/<ID>.json`: 워크플로우 JSON
+- 백업 워크플로우 (매일 18:00, 수동 실행 가능)
+  - `n8n/n8n_backup_<시각>.tar.gz`: `n8n_data` 볼륨을 Code 노드가 tar 로 묶음
+  - `n8n/n8n_workflows_<시각>/<ID>.json`: 워크플로우 JSON
+  - `n8n/n8n_executions_<시각>.json`: 실행 기록
+  - `n8n/n8n_datatables_<시각>.json`: 데이터 테이블
+  - DB 덤프는 없음. n8n 컨테이너에 `pg_dump` 가 없음
+  - Code 노드가 `fs`·`child_process` 를 쓰므로 `.env` 의 `NODE_FUNCTION_ALLOW_BUILTIN=*` 필요
+- n8n 컨테이너 폴더 연결
+  - `<BACKUP_DIR>` 전체를 `~/.n8n-files/backups` 로 연결. n8n 2.x 의 파일 노드는 `~/.n8n-files` 아래만 쓸 수 있음
+  - 그래서 `bin/n8n.sh backup` 의 DB 덤프도 워크플로우에서 읽을 수 있음. `n8n_data` 볼륨은 Code 노드가 원래 `~/.n8n` 으로 읽을 수 있어, 새로 드러나는 것은 사실상 DB 덤프
+- 동시 실행
+  - 두 백업이 같은 분에 실행되면 한 폴더에 섞임. 파일 이름의 `<시각>`(초 단위)이 달라 덮어쓰지는 않음
 
 ## 애플리케이션 아키텍처
 
@@ -168,17 +181,17 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 
 ## 서비스별 출처와 설치
 
-사전 준비: Docker(Compose 포함), Node.js 20 이상, npm, pnpm.
+사전 준비: Docker(Compose 포함), Node.js(보안 권고의 해결 버전 이상, README 6장), npm, pnpm.
 
 ### n8n
 
 - 출처: [n8n-io/n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases)
 - 이미지: 로컬 빌드 `n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`
-  - 공식 이미지 `docker.n8n.io/n8nio/n8n:<N8N_VERSION>` 에 [node 공식 이미지](https://hub.docker.com/_/node) `node:<N8N_NODE_VERSION>-alpine` 의 Node 바이너리만 덮어쓴다.
+  - 공식 이미지 `docker.n8n.io/n8nio/n8n:<N8N_VERSION>` 에 [node 공식 이미지](https://hub.docker.com/_/node) `node:<N8N_NODE_VERSION>-alpine3.24` 의 Node 바이너리만 덮어쓴다.
   - 이유와 되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석, 되돌리는 방법은 [README](../README.md) '4. 버전 업그레이드' 에 있다.
 - 한글 환경 설정 참고: [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)
 - 설정: `services/n8n/.env` (버전 `N8N_VERSION`·`N8N_NODE_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`, `services/n8n/Dockerfile`
-- 스티키 노트 로고: 저장소의 `assets/ajd-logo.png` 를 편집기 static 폴더에 읽기 전용으로 연결해 `/static/ajd-logo.png` 로 보인다. 작성 규칙은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
+- 스티키 노트 로고: 저장소의 `assets/ajd-auto-logo.png` 를 편집기 static 폴더에 읽기 전용으로 연결해 `/static/ajd-auto-logo.png` 로 보인다. 작성 규칙은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ```bash
 cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력

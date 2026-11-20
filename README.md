@@ -17,31 +17,31 @@ Docker Compose로 n8n과 PostgreSQL을 띄우고, Claude Code가 n8n-mcp로 워�
 
 ```text
 root
-├── assets/ajd-logo.png              # n8n 스티키 노트 로고 (50x50 px) — compose 가 /static/ajd-logo.png 로 연결 (주요 설정 6번)
-├── bin/n8n.sh                       # n8n 시작·중지·로그·백업 제어 스크립트
-├── bin/n8n-admin.sh                 # n8n-admin 대시보드 실행 스크립트 (7장 참고)
-├── services/n8n/
-│   ├── .env                         # 환경변수 (버전·포트·타임존·로케일·DB 계정·암호화 키·API 키) — 비밀값 포함, git 제외
-│   ├── .env.example                 # .env 템플릿 (비밀값은 비워 둠) — cp .env.example .env 후 ★ 항목 채우기
-│   ├── docker-compose.yml           # n8n + PostgreSQL 컨테이너 정의
-│   ├── Dockerfile                   # n8n 공식 이미지의 Node.js 만 보안 패치 버전으로 교체 (주요 설정 0번)
-│   ├── .dockerignore                # 빌드 컨텍스트 전부 제외 — .env 가 빌드로 넘어가지 않도록
-│   └── workflows/                   # bin/n8n.sh export 가 만드는 워크플로우 JSON 폴더 (현재 저장소에는 없음, 3장 참고)
-├── services/n8n-mcp/                # Claude Code 용 n8n MCP 서버 (6장 참고)
-├── services/n8n-admin/              # n8n 관리 대시보드 — 외부 리포지토리를 git 서브모듈로 연결 (7장 참고)
-├── .gitmodules                      # 서브모듈 등록 정보 (n8n-admin 원격 주소)
-├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장 참고)
-├── .claude/                         # Claude Code 규칙(rules/n8n)·스킬(skills/n8n)·플러그인 설정(settings.json)·개인 권한 설정(settings.local.json, 커밋 안 함)·세션 간 작업지시서(tasks/, 다 쓰면 지움)
-├── data/backups/<일시>/<서비스명>/  # 백업 (git 제외). 일시는 YYYYMMDDHHMM, 서비스명은 n8n·n8n-postgres. 위치는 .env 의 BACKUP_DIR 로 변경 가능
-│                                    #   bin/n8n.sh backup 과 백업 워크플로우(매일 18:00)가 같은 규칙으로 저장. n8n 컨테이너에 폴더 전체 연결
-│                                    #   n8n/           볼륨 백업 *.tar.gz, 워크플로우 JSON n8n_workflows_<시각>/, workflows/ 단일 워크플로우 백업
-│                                    #                  실행 기록·데이터 테이블 n8n_{executions,datatables}_<시각>.json (백업 워크플로우만)
-│                                    #   n8n-postgres/  DB 덤프 *.sql.gz (bin/n8n.sh backup 만)
-├── logs/<YYYY>/<YYYY.MM>/           # 컨테이너 로그 파일 <서비스명>.<YYYY-MM-DD>.log (git 제외)
-├── docs/                            # 프로젝트 관련 문서
-│   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조, 서비스별 출처와 설치 방법
-│   ├── logging.md                   # 로그가 남는 곳, 로그 파일 기록, 강제 종료 확인
-│   └── code-style.md                # 코드 스타일 (초안)
+├── .claude/                         # Claude Code 규칙·스킬·설정
+├── assets/                          # 로고 이미지 등
+├── bin/                             # 실행 스크립트
+│   ├── n8n.sh                       
+│   └── n8n-admin.sh                 
+├── services/
+│   ├── n8n                          # n8n (docker 배포 이미지 사용)
+│   │   ├── .env                     # 환경변수 — 비밀값 포함.
+│   │   ├── .env.example             # .env 템플릿 — 복사 후 ★ 항목 입력
+│   │   ├── docker-compose.yml       # docker 컨테이너 정의
+│   │   ├── Dockerfile               # n8n 공식 이미지의 Node.js 만 보안 패치 버전으로 교체
+│   │   ├── .dockerignore            # 빌드 컨텍스트 전부 제외
+│   │   └── workflows/               # bin/n8n.sh export 결과 JSON
+│   │
+│   ├── n8n-mcp                      # n8n-mcp
+│   └── n8n-admin/                   # n8n-admin (데이터팝콘 제작)
+├── .gitmodules                      # 서브모듈 원격 주소
+├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장)
+├── data/                            # 데이터 계층
+│   └── backups/                     # 백업 <YYYYMMDDHHMM>/<서비스명>/ (git 제외, 주요 설정 5번)
+├── logs/                            # 컨테이너 로그 <YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log (git 제외)
+├── docs/                            # 프로젝트 문서
+│   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조 등
+│   ├── logging.md                   # 로깅 관련
+│   └── code-style.md                # 코드 스타일
 ├── CHANGELOG.md                     # 버전별 변경 기록
 ├── CLAUDE.md                        # Claude Code 프로젝트 규칙
 └── README.md
@@ -51,167 +51,117 @@ root
 
 ## 📌 주요 설정 포인트 요약
 
-> 모든 설정은 `services/n8n/.env` 한 곳에서 관리합니다. n8n 컨테이너는 `env_file` 로 이 파일을 그대로 읽습니다
-> (`LANG`·`TZ` 처럼 호스트 셸에도 흔히 있는 값이 `.env` 를 덮어쓰지 않도록 n8n 설정값에는 compose `${VAR}` 보간을 쓰지 않음).
-> 예외로 compose 파일 자체가 알아야 하는 값만 `${VAR}` 보간으로 받습니다: 이미지 태그·빌드 인자(`N8N_VERSION`, `N8N_NODE_VERSION`), 포트 매핑(`N8N_PORT`),
-> postgres·n8n 두 컨테이너가 공유하는 DB 접속 정보(`POSTGRES_*`), 백업 폴더 연결(`BACKUP_DIR`).
+> 설정은 모두 `services/n8n/.env` 에서 합니다. n8n 컨테이너는 `env_file` 로 이 파일을 그대로 읽습니다.
+> compose `${VAR}` 보간은 compose 가 직접 알아야 하는 값(이미지 태그·빌드 인자, 포트, DB 접속 정보, 백업 폴더)에만 씁니다. 호스트 셸의 `LANG`·`TZ` 가 `.env` 를 덮어쓰지 않도록 하기 위해서입니다.
 
 0. **버전 고정 (`N8N_VERSION=2.44.7`, `N8N_NODE_VERSION=26.13.1`)**
-   - 이미지 태그를 `latest` 대신 stable 버전으로 고정 — 컨테이너 재생성 시 의도치 않은 업그레이드·DB 마이그레이션 방지
-   - stable 확인: [n8n releases](https://github.com/n8n-io/n8n/releases)
-   - n8n 컨테이너는 공식 이미지에서 Node.js 만 `N8N_NODE_VERSION` 으로 바꾼 로컬 이미지(`n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>`)로 실행
-     - 이유·되돌릴 조건: `services/n8n/Dockerfile` 맨 위 주석. 되돌리는 방법: 4장
-1. **타임존 (한국 표준시 UTC+9)**
-   - `GENERIC_TIMEZONE=Asia/Seoul`: n8n 스케줄 트리거, Cron 노드, 날짜 함수의 기본 시간대
-   - `TZ=Asia/Seoul`: 컨테이너 OS 및 Node.js 라이브러리의 시스템 시간대 (로그 및 시스템 시간 일치)
-2. **로케일 및 문자 인코딩 (UTF-8)**
-   - `LANG=ko_KR.UTF-8`, `LC_ALL=ko_KR.UTF-8`: 한글 파일명 및 텍스트 데이터 파싱 시 깨짐 방지
-   - `N8N_DEFAULT_LOCALE=ko`: 공식 이미지에는 영어(en) 번역만 들어 있어 **UI 는 영어로 표시됨** (번역 빌드를 마운트할 때만 효과)
-3. **데이터 영속성 (Docker Volume)**
-   - `n8n_postgres_data`: PostgreSQL 데이터 (워크플로우·크레덴셜·실행 이력·사용자)
-   - `n8n_data:/home/node/.n8n`: 암호화 키(`config`)·커뮤니티 노드 등
-   - 컨테이너를 재시작하거나 버전을 업그레이드해도 두 볼륨의 데이터는 보존됨
-4. **한국 레거시 인코딩(EUC-KR / CP949) 처리 지원**
-   - `NODE_FUNCTION_ALLOW_BUILTIN=*`: Code 노드에서 Node.js 내장 `TextDecoder` 사용 가능
+   - stable 버전으로 고정: 컨테이너를 다시 만들 때 의도치 않은 업그레이드·DB 마이그레이션 방지 ([n8n releases](https://github.com/n8n-io/n8n/releases))
+   - n8n 은 Node.js 만 교체한 로컬 이미지 `n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>` 로 실행. 이유·되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석
+1. **타임존 (Asia/Seoul)**
+   - `GENERIC_TIMEZONE`: n8n 스케줄 트리거·날짜 함수의 기본 시간대
+   - `TZ`: 컨테이너 OS·로그 시간
+2. **로케일·인코딩 (UTF-8)**
+   - `LANG`·`LC_ALL=ko_KR.UTF-8`: 한글 파일명·텍스트 깨짐 방지
+   - `N8N_DEFAULT_LOCALE=ko`: 공식 이미지에 한국어 번역이 없어 UI 는 영어로 표시
+3. **데이터 영속성 (Docker 볼륨, 재시작·업그레이드해도 보존)**
+   - `n8n_postgres_data`: 워크플로우·크레덴셜·실행 이력·사용자
+   - `n8n_data`(`/home/node/.n8n`): 암호화 키(`config`)·커뮤니티 노드
+4. **Code 노드 내장 모듈 허용 (`NODE_FUNCTION_ALLOW_BUILTIN=*`)**
+   - Code 노드에서 `require('fs')` 같은 Node.js 내장 모듈을 쓸 수 있게 함. 백업 워크플로우가 `fs`·`child_process` 사용
+   - `Buffer`·`TextDecoder` 는 이 설정 없이도 사용 가능. 외부 API 의 EUC-KR 응답 변환은 '💡 한글 관련 실무 팁' 2번
 5. **백업 경로 (`BACKUP_DIR`)**
-   - 비워 두면 프로젝트 루트의 `data/backups`. 다른 위치는 절대 경로로 지정
-   - `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 값을 읽음
-   - n8n 컨테이너에는 `BACKUP_DIR` 전체를 `~/.n8n-files/backups` 로 연결. 백업 워크플로우도 `bin/n8n.sh backup` 과 같은 경로에 저장
-   - 그래서 n8n 워크플로우에서 `bin/n8n.sh backup` 의 볼륨 백업·DB 덤프도 읽을 수 있음
-6. **스티키 노트 로고 (`assets/ajd-logo.png`)**
-   - 워크플로우 설명 스티키 노트 맨 위의 회사 로고. 50x50 px 파일 크기 그대로 보임
-   - compose 가 n8n 편집기의 static 폴더에 읽기 전용으로 연결 → 스티키에는 `![아정당](/static/ajd-logo.png)`
-   - n8n 스티키는 `https://` 와 `/static/` 아래 이미지만 표시하고 크기 지정(HTML)을 막아서 이 방식을 씀
-   - 스티키 작성 규칙(로고·제목·1~2줄 요약): [workflow-builder.md](.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
+   - 비우면 `data/backups`, 다른 위치는 절대 경로
+   - `bin/n8n.sh backup` 과 백업 워크플로우(매일 18:00)가 같은 경로에 저장. 자세한 내용은 [docs/architecture.md](docs/architecture.md) '데이터가 저장되는 곳'
+6. **스티키 노트 로고 (`assets/ajd-auto-logo.png`)**
+   - compose 가 n8n 편집기 static 폴더에 연결해 스티키에서 `![아정당](/static/ajd-auto-logo.png)` 로 씀. 50x50 px 파일 크기 그대로 보임
+   - 작성 규칙: [workflow-builder.md](.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ---
 
 ## 🚀 빠른 시작
 
 ### 1. 접속 정보
-- **URL**: [http://localhost:5678](http://localhost:5678) — 포트는 `services/n8n/.env` 의 `N8N_PORT` (변경 시 `N8N_WEBHOOK_URL` 도 함께 수정 후 `bin/n8n.sh restart`)
-- 처음 접속 시 관리자 계정(이메일, 비밀번호)을 생성하고 즉시 사용하실 수 있습니다.
+- **URL**: [http://localhost:5678](http://localhost:5678) — 포트는 `.env` 의 `N8N_PORT` (바꾸면 `N8N_WEBHOOK_URL` 도 수정 후 `bin/n8n.sh restart`)
+- 처음 접속하면 관리자 계정을 만듭니다.
 
 ### 2. 관리 명령어 (`bin/n8n.sh`)
-편리한 실행 및 관리를 위해 헬퍼 스크립트가 준비되어 있습니다 (어느 위치에서 실행해도 프로젝트 루트 기준으로 동작):
+어느 위치에서 실행해도 프로젝트 루트 기준으로 동작합니다.
 
 ```bash
-# 실행 (백그라운드)
-bin/n8n.sh start
-
-# 중지 (컨테이너를 지우기 전에 로그를 logs/ 에 기록)
-bin/n8n.sh stop
-
-# 재시작 (환경변수 갱신 시 컨테이너 완전 재생성, 로그 기록은 stop 과 동일)
-# 내리기 전에 n8n 이미지를 다시 빌드하고, 빌드가 실패하면 기존 컨테이너를 그대로 둠
-bin/n8n.sh restart
-
-# 실시간 로그 확인
-bin/n8n.sh logs
-
-# 컨테이너 상태 확인
-bin/n8n.sh status
-
-# 백업 → <BACKUP_DIR>/<YYYYMMDDHHMM>/ (BACKUP_DIR 기본값 data/backups, n8n 이 실행 중이어야 함)
-#   n8n/           n8n_data 볼륨(*.tar.gz), 워크플로우 JSON(n8n_workflows_<시각>/)
-#   n8n-postgres/  PostgreSQL 덤프(*.sql.gz)
-bin/n8n.sh backup
-
-# 워크플로우 내보내기 / 가져오기 (services/n8n/workflows/*.json)
-bin/n8n.sh export
-bin/n8n.sh import
+bin/n8n.sh start     # 실행 (백그라운드)
+bin/n8n.sh stop      # 중지. 컨테이너를 지우기 전에 로그를 logs/ 에 기록
+bin/n8n.sh restart   # 이미지 빌드 → 컨테이너 재생성 (.env 반영). 빌드가 실패하면 기존 컨테이너 유지
+bin/n8n.sh logs      # 실시간 로그
+bin/n8n.sh status    # 컨테이너 상태
+bin/n8n.sh backup    # 볼륨·DB 덤프·워크플로우 JSON → <BACKUP_DIR>/<YYYYMMDDHHMM>/ (n8n 실행 중이어야 함)
+bin/n8n.sh export    # 워크플로우 → services/n8n/workflows/*.json (3장)
+bin/n8n.sh import    # services/n8n/workflows/*.json → n8n (3장)
 ```
 
-*(docker compose 를 직접 쓸 때는 compose 파일 경로를 지정하면 같은 폴더의 `.env` 를 자동으로 읽습니다: `docker compose -f services/n8n/docker-compose.yml up -d`)*
-
-**컨테이너 로그**
-- 컨테이너 로그는 Docker `json-file` 드라이버에 쌓이며 파일당 10MB·최대 5개로 제한합니다 (`docker-compose.yml` 의 `x-logging`). Docker 에는 일수 기준 롤링이 없습니다.
-- 컨테이너를 지우면 Docker 로그도 사라지므로 `stop`·`restart` 는 지우기 직전에 로그 파일로 기록합니다. 경로는 `logs/<YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log` 이고 날짜는 기록한 날입니다 (타임스탬프는 UTC, 자동 삭제 없음). 백업(`data/backups/`)과는 별개입니다.
-- 프로세스가 죽어 Docker 가 같은 컨테이너를 다시 띄운 경우에는 로그가 그대로 이어집니다. `docker compose down`·`docker rm` 을 직접 실행하면 기록 없이 사라집니다.
-- 자세한 내용(강제 종료 확인 방법, n8n 로그 설정 변수 등): [docs/logging.md](docs/logging.md)
+- compose 를 직접 쓸 때: `docker compose -f services/n8n/docker-compose.yml up -d` (같은 폴더의 `.env` 를 자동으로 읽음)
+- 컨테이너 로그: Docker 에는 컨테이너당 10MB×5개까지 남고, 컨테이너를 지우면 사라집니다. 그래서 `stop`·`restart` 가 지우기 직전에 `logs/` 로 기록합니다. `docker compose down` 을 직접 실행하면 기록 없이 사라집니다. 자세한 내용: [docs/logging.md](docs/logging.md)
 
 ### 3. 워크플로우 형상관리 (export / import)
-워크플로우는 DB(PostgreSQL)에 저장되므로, git 으로 이력을 남기려면 JSON 으로 내보내야 합니다. 두 명령 모두 n8n 이 실행 중이어야 합니다.
+워크플로우는 DB 에 저장되므로, git 으로 이력을 남기려면 JSON 으로 내보냅니다. 두 명령 모두 n8n 이 실행 중이어야 합니다.
 
-> 현재 저장소에는 내보낸 워크플로우 JSON 이 없습니다 (`services/n8n/workflows/` 폴더 없음). 워크플로우 원본은 n8n DB 에만 있으므로 보존은 `bin/n8n.sh backup` 으로 합니다.
-> `backup` 은 DB 덤프와 함께 워크플로우 전체를 JSON 으로도 남깁니다 (`data/backups/<YYYYMMDDHHMM>/n8n/n8n_workflows_<시각>/<워크플로우 ID>.json`).
-> 백업한 JSON 하나를 되돌릴 때는 아래 '파일 하나만 가져올 때' 명령에 그 파일 경로를 넣습니다.
-> 터미널 없이도 `[메인] 운영: n8n 데이터 백업` 워크플로우가 매일 18:00 에 자동으로 백업합니다. n8n 화면에서 수동으로 실행해도 됩니다.
-> `bin/n8n.sh backup` 과 같은 `<BACKUP_DIR>/<YYYYMMDDHHMM>/n8n/` 에 n8n_data 볼륨(`n8n_backup_<시각>.tar.gz`, 암호화 키 포함), 워크플로우 JSON(`n8n_workflows_<시각>/<워크플로우 ID>.json`), 실행 기록·데이터 테이블(`n8n_{executions,datatables}_<시각>.json`)을 남깁니다.
-> 크레덴셜이 든 DB 덤프는 `bin/n8n.sh backup` 만 만듭니다 (n8n 컨테이너에 `pg_dump` 없음). 파일은 자동으로 지워지지 않습니다.
-> 18:00 에 Mac 이 절전 중이면 그날 백업은 건너뜁니다. n8n 이 Mac 의 Docker 에서 돌고, 스케줄러가 놓친 실행을 다시 돌리지 않기 때문입니다.
-> git 으로 이력을 남기려면 `bin/n8n.sh export` 를 실행합니다. 폴더는 이때 자동으로 만들어집니다.
+| 명령 | 동작 |
+|---|---|
+| `bin/n8n.sh export` | 워크플로우마다 `services/n8n/workflows/<ID>.json` 으로 저장. 폴더의 기존 JSON 을 비우고 통째로 교체 |
+| `bin/n8n.sh import` | 폴더의 JSON 을 **전부** 가져옴. 같은 ID 는 덮어씀. 가져온 워크플로우는 **모두 비활성**이 되어 다시 게시해야 함 |
 
-- `export`: 워크플로우 1개당 `<워크플로우 ID>.json` 1개. 폴더의 기존 JSON 을 비우고 통째로 교체하므로 n8n 에서 지운 워크플로우는 파일에서도 사라짐
-  (단, 워크플로우가 0개면 n8n 이 오류를 내고 기존 파일은 그대로 둠)
-- `import`: 폴더의 JSON 을 **전부** 가져옴 (폴더가 없으면 실패하므로 먼저 `export` 한 JSON 이 있어야 함). 같은 ID 는 덮어쓰고 없는 ID 는 새로 생성. **가져온 워크플로우는 (이미 켜져 있던 것도) 모두 비활성 상태**가 되므로 UI 에서 다시 활성화해야 함.
-  파일 하나만 가져올 때:
+- 파일 하나만 가져올 때 (백업한 JSON 하나를 되돌릴 때도 사용):
   ```bash
-  docker cp services/n8n/workflows/<ID>.json n8n:/tmp/<ID>.json
-  docker exec n8n n8n import:workflow --input=/tmp/<ID>.json
+  docker cp <파일>.json n8n:/tmp/wf.json && docker exec n8n n8n import:workflow --input=/tmp/wf.json
   ```
-- 크레덴셜 값은 JSON 에 들어가지 않습니다 (크레덴셜 ID·이름만 참조). 다른 n8n 으로 옮길 때는 크레덴셜을 따로 만들어 연결해야 합니다
-- 노드 파라미터에 직접 넣은 토큰·URL, `pinData`(고정 테스트 데이터), `shared`(소유 계정 정보 — 이메일 포함)는 그대로 들어가므로 커밋 전에 확인하고 지우세요
+- 커밋 전에 지울 것: 노드 파라미터의 토큰·URL, `pinData`(고정 테스트 데이터), `shared`(계정 이메일). 크레덴셜 값은 JSON 에 없어 다른 n8n 으로 옮기면 다시 연결해야 함
+- 현재 저장소에는 내보낸 JSON 이 없습니다. 워크플로우는 `bin/n8n.sh backup` 과 백업 워크플로우(매일 18:00)로 보존합니다. 저장 위치와 내용은 [docs/architecture.md](docs/architecture.md) '데이터가 저장되는 곳'
 
 ### 4. 버전 업그레이드
-1. `bin/n8n.sh backup` — 볼륨(암호화 키), DB(워크플로우·크레덴셜), 워크플로우 JSON 백업
-2. `services/n8n/.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경 (git 에 남도록 `.env.example`, README 의 버전 표기·뱃지, `docs/architecture.md` 서비스 표도 함께)
-3. `bin/n8n.sh restart` — 새 버전 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너는 그대로)
-4. 스티키 노트 로고 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<N8N_PORT>/static/ajd-logo.png` 가 `200` (편집기 폴더 구조가 바뀌면 로고가 깨짐, 주요 설정 6번)
+1. `bin/n8n.sh backup`
+2. `.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경. `.env.example`, README 뱃지·버전 표기, `docs/architecture.md` 서비스 표도 함께
+3. `bin/n8n.sh restart`: 새 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너 유지)
+4. 스티키 로고 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<N8N_PORT>/static/ajd-auto-logo.png` 가 `200`
 
-> **공식 이미지로 되돌리기**: 3단계 빌드가 ❌ 메시지로 멈추면 메시지를 따릅니다. 공식 이미지의 Node 가 `N8N_NODE_VERSION` 이상이거나, 메이저가 바뀌었는데 이미 보안 권고의 해결 버전이면 공식 이미지로 되돌립니다.
-> 아래를 고친 뒤 다시 `bin/n8n.sh restart` 합니다.
-> - 지움: `services/n8n/Dockerfile`, `services/n8n/.dockerignore`, `.env`·`.env.example` 의 `N8N_NODE_VERSION`
-> - `services/n8n/docker-compose.yml`: n8n `image:` 를 `docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}` 로 바꾸고 `pull_policy`·`build` 삭제
-> - 문서·주석: `git grep -n -E 'N8N_NODE_VERSION|Dockerfile|n8n-local|빌드'` 로 찾은 곳 (README, `docs/`, `CLAUDE.md`, compose·`.env.example` 주석)
-> - 쓰지 않게 된 로컬 이미지는 `docker images n8n-local` 로 확인한 뒤 지움
+> **공식 이미지로 되돌리기**: 3단계 빌드가 ❌ 로 멈추면 메시지를 따릅니다. 공식 이미지의 Node 가 이미 보안 권고의 해결 버전이면 아래를 고치고 다시 `bin/n8n.sh restart` 합니다.
+> - 지움: `services/n8n/Dockerfile`·`.dockerignore`, `.env`·`.env.example` 의 `N8N_NODE_VERSION`
+> - compose: n8n `image:` 를 `docker.n8n.io/n8nio/n8n:${N8N_VERSION:?set N8N_VERSION in .env}` 로 바꾸고 `pull_policy`·`build` 삭제
+> - 문서·주석: `git grep -n -E 'N8N_NODE_VERSION|Dockerfile|n8n-local|빌드'` 로 찾은 곳. 남은 이미지는 `docker images n8n-local` 로 확인 후 삭제
 
-> **n8n 3.0 주의** (stable 2026-12 초 예정): npm 설치 지원 종료(Docker 필수), Function·Item Lists·Cron 등 레거시 노드 삭제, 암호화 키 로테이션 기본 활성화 등 breaking change 가 있습니다.
-> 올리기 전에 n8n 화면의 **Settings > Migration Report** 를 확인하고 백업하세요. 참고: [v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)
+> **n8n 3.0 주의** (stable 2026-12 초 예정): 레거시 노드 삭제·암호화 키 로테이션 등 호환이 깨지는 변경이 있습니다. 올리기 전에 **Settings > Migration Report** 를 확인하고 백업합니다. 참고: [v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes)
 
 ### 5. DB (PostgreSQL) 설정
-n8n 은 DB 설정이 없으면 SQLite 를 쓰지만, 이 프로젝트는 `postgres` 컨테이너(PostgreSQL 17 — n8n 2.44.7 지원 범위)를 함께 띄워 사용합니다. 설정은 모두 `services/n8n/.env` 에서 합니다.
+n8n DB 는 함께 뜨는 `postgres` 컨테이너(PostgreSQL 17)입니다. 설정은 `services/n8n/.env` 의 아래 값입니다.
 
 | 변수 | 용도 |
 |---|---|
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | postgres 컨테이너의 계정·비밀번호·DB 이름. n8n 은 같은 값으로 접속 (compose 가 `DB_POSTGRESDB_*` 로 연결) |
-| `N8N_ENCRYPTION_KEY` | 크레덴셜 암호화 키. `n8n_data` 볼륨의 `config` 파일과 같아야 하며, 다르면 n8n 이 시작되지 않음 |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | postgres 계정·비밀번호·DB 이름. n8n 도 같은 값으로 접속 |
+| `N8N_ENCRYPTION_KEY` | 크레덴셜 암호화 키. `n8n_data` 볼륨의 `config` 와 다르면 n8n 이 시작되지 않음 |
 
 - 비밀번호·암호화 키 생성: `openssl rand -hex 16`
-- `POSTGRES_*` 는 **DB 볼륨이 비어 있는 최초 기동 때만** 적용됩니다. 이후 비밀번호를 바꾸려면 DB 안에서도 바꿔야 합니다
+- `POSTGRES_*` 는 DB 볼륨이 비어 있는 최초 기동 때만 적용. 나중에 비밀번호를 바꾸려면 DB 에서도 변경
   (`docker exec -it n8n-postgres psql -U n8n -c "ALTER USER n8n PASSWORD '<새 비밀번호>'"` → `.env` 수정 → `bin/n8n.sh restart`)
-- DB 접속: `docker exec -it n8n-postgres psql -U n8n -d n8n` (호스트 포트는 열지 않음)
+- 접속: `docker exec -it n8n-postgres psql -U n8n -d n8n` (호스트 포트 없음)
 - 덤프 복원: `gunzip -c data/backups/<YYYYMMDDHHMM>/n8n-postgres/n8n_db_<시각>.sql.gz | docker exec -i n8n-postgres psql -U n8n -d n8n`
-- `N8N_BASIC_AUTH_*` 는 n8n 1.0 에서 사용자 계정 방식으로 바뀌면서 없어진 설정이라 쓰지 않습니다
 
 ### 6. Claude Code 연동 (n8n-mcp)
-Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n 의 워크플로우를 만들고·조회·검증합니다. 서버는 프로젝트 안(`services/n8n-mcp/`)에 설치하고 `.mcp.json` 으로 등록합니다.
+Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n 의 워크플로우를 만들고 조회·검증합니다. 서버는 `services/n8n-mcp/` 에 설치하고 `.mcp.json` 으로 등록합니다.
 
-1. **설치** (clone 직후 1회 — `node_modules` 는 커밋하지 않음)
-   ```bash
-   cd services/n8n-mcp && npm ci
-   ```
-   버전은 `package.json` 에 고정. 올릴 때는 버전을 바꾸고 `npm install` 후 Claude Code 세션을 새로 시작합니다.
-   README 맨 위 뱃지의 n8n-mcp 버전과 Node 요구 버전(`node_modules/n8n-mcp/package.json` 의 `engines`)도 함께 고칩니다.
-   n8n-mcp 는 호스트 Node 로 실행되므로, 호스트 Node 는 `engines` 범위 안에서 보안 권고의 해결 버전 이상을 씁니다 (2026-11 기준 22.23.5·24.22.3·26.13.1 이상, 근거는 `services/n8n/Dockerfile` 주석).
-2. **API 키**: n8n 화면 **Settings > n8n API** 에서 키를 만들어 `services/n8n/.env` 의 `N8N_API_KEY` 에 넣습니다.
-   `.mcp.json` 은 서버를 띄울 때 이 값을 `.env` 에서 읽으므로 `.mcp.json` 에는 비밀값이 없습니다.
-3. **연결 확인**: `.mcp.json` 은 세션 시작 때만 읽힙니다. Claude Code 를 새로 열고 프로젝트 MCP 서버(`n8n-mcp`) 사용을 승인한 뒤 `/mcp` 로 연결 상태를 확인합니다.
+1. **설치** (clone 직후 1회): `cd services/n8n-mcp && npm ci`
+   - 버전은 `package.json` 에 고정. 올릴 때: 버전 변경 → `npm install` → README 뱃지(n8n-mcp, Node `engines`) 수정 → Claude Code 세션 새로 시작
+   - 호스트 Node 는 `engines` 범위 안에서 보안 권고의 해결 버전 이상 (2026-11 기준 22.23.5·24.22.3·26.13.1, 근거는 `services/n8n/Dockerfile` 주석)
+2. **API 키**: n8n **Settings > n8n API** 에서 만들어 `.env` 의 `N8N_API_KEY` 에 넣습니다. `.mcp.json` 은 실행할 때 이 값을 읽으므로 비밀값이 없습니다.
+3. **연결 확인**: Claude Code 를 새로 열고 `n8n-mcp` 사용을 승인한 뒤 `/mcp` 로 확인합니다 (`.mcp.json` 은 세션 시작 때만 읽힘).
 
-`.mcp.json` 의 `env` 설정:
+`.mcp.json` 의 `env`:
 
 | 변수 | 값 | 이유 |
 |---|---|---|
-| `N8N_API_URL` | `http://localhost:5678` | 로컬 n8n 주소. **`N8N_PORT` 를 바꾸면 여기도 같이 수정** |
-| `WEBHOOK_SECURITY_MODE` | `moderate` | 기본값 `strict` 는 localhost 호출을 막아 로컬 웹훅·폼 테스트가 안 됨. `moderate` 는 localhost 허용, 사설 IP·클라우드 메타데이터 주소는 계속 차단 |
-| `N8N_MCP_TELEMETRY_DISABLED` | `true` | n8n-mcp 의 사용 통계 전송 끔 (기본값은 켜짐) |
+| `N8N_API_URL` | `http://localhost:5678` | 로컬 n8n 주소. `N8N_PORT` 를 바꾸면 함께 수정 |
+| `WEBHOOK_SECURITY_MODE` | `moderate` | 로컬 웹훅·폼 테스트 허용 (기본값 `strict` 는 localhost 차단). 사설 IP·메타데이터 주소는 계속 차단 |
+| `N8N_MCP_TELEMETRY_DISABLED` | `true` | 사용 통계 전송 끔 |
 
-- `N8N_MCP_ACCESS_TOKEN`(n8n **Settings > Instance-level MCP** 키)은 설정하지 않았습니다. 그래서 아래 표의 🔒 도구는 쓸 수 없고, 다음 기능도 막혀 있습니다.
-  - `n8n_test_workflow` 의 `prepare`·`pinned`·`direct` 방식 → 테스트는 webhook·form·chat 트리거 워크플로우를 **활성화한 뒤** 호출하는 방식만 됩니다
-  - `n8n_workflow_versions` 의 `source: "native"`(n8n 자체 이력) → n8n-mcp 가 수정 직전에 저장한 스냅샷만 조회·롤백할 수 있습니다
-  - `n8n_manage_datatable` 의 컬럼 추가·삭제·이름 변경
-- `.claude/settings.json` 은 n8n-mcp 도구 사용법 스킬 묶음인 `n8n-mcp-skills` 플러그인을 켭니다.
-- n8n 작업 규칙: [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)
+- `N8N_MCP_ACCESS_TOKEN`(Instance-level MCP 키)은 설정하지 않아 🔒 도구를 쓸 수 없습니다. 같은 이유로 `n8n_test_workflow` 는 webhook·form·chat 트리거 워크플로우를 활성화한 뒤 호출하는 방식만 되고, 버전 이력은 n8n-mcp 스냅샷만, 데이터 테이블 컬럼은 바꿀 수 없습니다.
+- `.claude/settings.json` 은 `n8n-mcp-skills` 플러그인을 켭니다. n8n 작업 규칙: [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)
 
 #### n8n-mcp 도구 (2.103.1 기준 29개)
 
@@ -223,24 +173,17 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 | 노드 및 템플릿 (6) | `search_nodes` ✅, `get_node` ✅, `search_templates` ✅, `get_template` ✅, `n8n_deploy_template`, `n8n_explore_node_resources` 🔒 |
 | 참조 (1) | `tools_documentation` ✅ |
 
-- ✅ 확인 창 없이 실행: `.claude/settings.local.json` 의 `permissions.allow` 에 `mcp__n8n-mcp__<도구 이름>` 으로 등록한 도구. 읽기 전용 도구(🔒 제외)와 `n8n_create_workflow`·`n8n_update_partial_workflow` 만 등록합니다. 이 파일은 커밋하지 않는 개인 설정이라 각자 등록해야 합니다
-- 표시 없음: 실행할 때마다 확인. 삭제 동작이 있는 도구(`n8n_delete_workflow`·`n8n_executions`·`n8n_workflow_versions`·`n8n_manage_*`), 전체 교체(`n8n_update_full_workflow`), 실제 실행(`n8n_test_workflow`·`n8n_evaluations`)은 allow 에 넣지 않습니다
-- 🔒 `N8N_MCP_ACCESS_TOKEN` 이 있어야 쓸 수 있음 (현재 사용 불가)
-- `n8n_manage_variables`(2.103.0 추가)는 `$vars` 변수를 관리하는 도구로, 변수 기능이 포함된 n8n 유료 라이선스에서만 동작합니다 (무료 Community 에디션 불가)
-- 도구 목록은 `tools_documentation` 으로 확인합니다. `n8n_health_check` 진단 모드에 나오는 도구 수(21개)는 실제 등록 수(29개)와 다릅니다
+- ✅ 확인 없이 실행: 개인 설정 `.claude/settings.local.json`(커밋 안 함)의 `permissions.allow` 에 `mcp__n8n-mcp__<도구 이름>` 으로 등록한 도구. 읽기 전용 도구와 `n8n_create_workflow`·`n8n_update_partial_workflow` 만 등록
+- 표시 없음: 실행할 때마다 확인. 삭제·전체 교체·실제 실행 도구는 allow 에 넣지 않음
+- 🔒 `N8N_MCP_ACCESS_TOKEN` 필요 (현재 사용 불가)
+- `n8n_manage_variables` 는 n8n 유료 라이선스 전용 (Community 에디션 불가)
 
 ### 7. 관리 대시보드 (n8n-admin)
-[n8n-admin](https://github.com/team-datapopcorn/n8n-admin) 은 워크플로우·유저·크레덴셜을 웹 화면에서 관리하는 외부 도구입니다. 코드를 복사하지 않고 git 서브모듈(`services/n8n-admin/`)로 연결하므로, 이 리포지토리에는 원격 주소와 고정한 커밋만 기록됩니다.
+[n8n-admin](https://github.com/team-datapopcorn/n8n-admin) 은 워크플로우·유저·크레덴셜을 웹 화면에서 관리하는 외부 도구입니다. git 서브모듈(`services/n8n-admin/`)로 연결해 이 저장소에는 원격 주소와 커밋만 기록합니다.
 
-1. **받기** (clone 직후 1회 — `git clone --recurse-submodules` 로 받았다면 생략)
-   ```bash
-   git submodule update --init
-   ```
-2. **의존성 설치** (Node.js 20 이상, pnpm 필요)
-   ```bash
-   cd services/n8n-admin/admin && pnpm install
-   ```
-3. **설정**: `cp services/n8n-admin/.env.example services/n8n-admin/.env` 후 아래 값을 채웁니다. 이 파일은 서브모듈 쪽 `.gitignore` 로 커밋에서 제외됩니다.
+1. **받기**: `git submodule update --init` (`git clone --recurse-submodules` 로 받았으면 생략)
+2. **의존성 설치** (Node.js 20 이상, pnpm): `cd services/n8n-admin/admin && pnpm install`
+3. **설정**: `cp services/n8n-admin/.env.example services/n8n-admin/.env` 후 아래 값 입력 (서브모듈 `.gitignore` 로 커밋 제외)
 
    | 변수 | 값 |
    |---|---|
@@ -249,13 +192,12 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
    | `ADMIN_PASSWORD` | 대시보드 로그인 비밀번호 |
    | `NEXTAUTH_SECRET` | `openssl rand -base64 32` 로 생성 |
    | `NEXTAUTH_URL` | `http://localhost:3000` — **대시보드 접속 주소이자 포트 설정** |
-   | `SLACK_WEBHOOK_URL` | (선택) Slack 앱의 Incoming Webhook 주소. 자동 정리 결과·오류 알림용 |
+   | `SLACK_WEBHOOK_URL` | (선택) 자동 정리 결과·오류 알림용 Incoming Webhook 주소 |
 4. **실행**: `bin/n8n-admin.sh start` → [http://localhost:3000](http://localhost:3000)
 
-- 포트를 바꾸려면 `NEXTAUTH_URL` 의 포트만 고칩니다. `bin/n8n-admin.sh` 가 이 주소에서 포트를 읽어 서버를 띄웁니다 (`bin/n8n-admin.sh port` 로 확인).
-  `NEXTAUTH_URL` 자체는 허용 주소만 정하고 서버 포트는 바꾸지 못하므로, 포트를 3000 이 아닌 값으로 바꾼 뒤 `pnpm dev` 를 직접 실행하면 3000번에 뜨고 모든 요청이 404 가 됩니다.
-- 대시보드는 `NEXTAUTH_URL` 과 다른 주소로 온 요청을 막습니다. `http://127.0.0.1:3000` 으로 열면 404 이므로 `localhost` 로 접속합니다.
-- `bin/n8n-admin.sh` 가 `services/n8n-admin/.env` 를 읽어 환경변수로 넘기므로 `admin/.env.local` 은 만들지 않습니다.
+- 포트는 `NEXTAUTH_URL` 의 포트만 고칩니다. `bin/n8n-admin.sh` 가 여기서 포트를 읽어 띄웁니다 (`pnpm dev` 를 직접 실행하면 3000번에 떠서 모든 요청이 404).
+- `localhost` 로 접속합니다. `NEXTAUTH_URL` 과 다른 주소(`127.0.0.1` 등)는 404 입니다.
+- `admin/.env.local` 은 만들지 않습니다. `bin/n8n-admin.sh` 가 `services/n8n-admin/.env` 를 넘깁니다.
 - 업데이트 확인·반영:
   ```bash
   git -C services/n8n-admin fetch
@@ -263,22 +205,21 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
   git submodule update --remote services/n8n-admin            # 최신으로 올리기
   git add services/n8n-admin                                  # 올린 버전을 이 리포지토리에 기록
   ```
-- 서브모듈 안의 파일은 수정하지 않습니다 (원본과 달라지면 업데이트 때 충돌).
+- 서브모듈 안의 파일은 수정하지 않습니다 (업데이트 때 충돌).
 
 ---
 
-## 💡 한글 관련 실무 팁 (가이드 핵심 내용)
+## 💡 한글 관련 실무 팁
 
-[참조](#-참조)의 EddyGlen n8n 한글 설정 가이드에서 실무에 필요한 내용만 정리했습니다.
+[참조](#-참조)의 EddyGlen n8n 한글 설정 가이드에서 실무에 필요한 것만 정리했습니다.
 
-### 1. UI 언어와 시스템 설정의 차이
-- n8n 공식 웹 UI는 기본적으로 영문으로 제공됩니다.
-- 가이드에서 다루는 "한글 설정"은 **시간(타임존)과 데이터 문자열(인코딩)이 깨지지 않도록 시스템 환경을 한국어화**하는 것입니다.
-- UI 자체를 한글로 보고 싶으신 경우, 크롬/웨일/엣지 브라우저의 **'한국어로 번역'** 기능을 활용하는 것이 가장 간편하고 호환성이 좋습니다.
-- 2026-10 기준 관리되는 한국어 UI 번역 커뮤니티 프로젝트는 없습니다 (n8n 본 저장소의 한국어 번역 PR #14552·#14626·#17018 은 모두 미병합 종료, 마지막 번역은 2.44.7 UI 문구의 약 32% 만 커버).
+### 1. UI 언어
+- n8n UI 는 영어만 제공됩니다. 한국어 번역은 n8n 본 저장소에 병합되지 않았습니다 (2026-10 기준). 필요하면 브라우저의 '한국어로 번역'을 씁니다.
+- 가이드의 '한글 설정'은 UI 가 아니라 시간·인코딩 설정입니다 (주요 설정 1·2번).
 
-### 2. 외부 API에서 EUC-KR / CP949 응답 처리
-국내 레거시 기관이나 ERP에서 EUC-KR로 응답을 주는 경우, **HTTP Request** 노드에서 응답을 `Binary`로 수신한 뒤 **Code** 노드에서 아래와 같이 변환할 수 있습니다:
+### 2. 외부 API의 EUC-KR / CP949 응답 변환
+국내 레거시 기관·ERP 가 EUC-KR 로 응답하면, **HTTP Request** 노드에서 `Binary` 로 받은 뒤 **Code** 노드에서 변환합니다.
+별도 설정은 필요 없습니다 (`Buffer`·`TextDecoder` 는 Code 노드에 기본으로 있고, n8n 컨테이너의 Node.js 가 EUC-KR 을 지원).
 
 ```javascript
 // Code 노드 (Run Once for Each Item)
@@ -294,8 +235,8 @@ return {
 };
 ```
 
-### 3. 한국식 날짜 포맷팅 (Date & Time 노드 또는 Code 노드)
-슬랙, 카카오톡 알림 전송 시 한국식 표기:
+### 3. 한국식 날짜 표기 (Date & Time 노드 또는 Code 노드)
+알림 메시지의 한국식 날짜 표기:
 ```javascript
 const now = $now.setZone('Asia/Seoul');
 const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');

@@ -2,6 +2,27 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.11.2] - 2026-11-20
+
+### 호환성
+
+- 스티키 로고 파일 이름 변경: `assets/ajd-logo.png` → `assets/ajd-auto-logo.png`, 주소 `/static/ajd-auto-logo.png`
+  - 반영: `bin/n8n.sh restart`
+  - 설명 스티키의 로고 주소도 새 주소로 바꿈. 바꾸기 전까지 옛 주소 로고는 깨져 보임
+
+### 변경
+
+- `README.md`: 전체를 두괄식으로 줄임 (319줄 → 260줄)
+  - 디렉터리 구조 갱신, 관리 명령어는 줄끝 주석 한 줄씩
+  - 3장 워크플로우 형상관리를 표와 단일 파일 import 명령 위주로
+  - 다른 문서에 있는 세부 내용(로그, 백업, 스티키 이미지 제약)은 링크로, 없어진 `N8N_BASIC_AUTH_*` 안내 삭제
+- `docs/architecture.md`: 백업 설명을 '백업' 절의 불릿으로 정리. 절전 중이면 그날 백업을 건너뜀, 백업 파일 자동 삭제 없음을 명시
+
+### 수정
+
+- `NODE_FUNCTION_ALLOW_BUILTIN` 설명 (`README.md` 주요 설정 4번, `services/n8n/.env.example`): 내장 모듈 `require` 허용. `Buffer`·`TextDecoder`·EUC-KR 변환은 이 설정과 무관
+- `docs/architecture.md`: 사전 준비의 Node.js 를 보안 권고의 해결 버전 이상으로, node 이미지 태그를 `alpine3.24` 로
+
 ## [0.11.1] - 2026-11-19
 
 ### 변경
