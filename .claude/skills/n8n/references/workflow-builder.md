@@ -77,14 +77,14 @@ n8n이 저장할 때 거부하는 그룹:
 `example-1~3`(n8n 기본 예제)을 뺀 모든 워크플로우에 설명 스티키 노트(Sticky Note)를 하나 둔다. 노드 이름은 `설명`이고, 맨 위 세 줄은 아래 형식으로 고정한다.
 
 ```markdown
-![아정당](/static/ajd-logo.png)
+![아정당](/static/ajd-auto-logo.png)
 ## 주식: 국내 종목 선별
 평일 08:10(또는 폼 제출)에 거래대금 상위 150종목에서 상승·하락 추세 종목을 골라 Slack으로 전송
 ```
 
 | 줄 | 규칙 |
 |----|------|
-| 로고 | `![아정당](/static/ajd-logo.png)` 그대로. 50x50 px 로 보임 |
+| 로고 | `![아정당](/static/ajd-auto-logo.png)` 그대로. 50x50 px 로 보임 |
 | 제목 | `## ` 뒤에 워크플로우 이름에서 `[유형]`을 뺀 `도메인: 기능` |
 | 요약 | 1~2줄, 명사형 종결. 언제(트리거·실행 시각) 무엇을 해서 결과를 어디로 보내는지. 서브는 누가 부르는지 |
 
@@ -102,7 +102,7 @@ n8n이 저장할 때 거부하는 그룹:
 
 - 지정 방법: 노드 `position`, `parameters.width`·`height`. 캔버스 그룹과 달리 n8n 이 거부하는 조건은 없다
 - 로고 이미지
-  - 파일: 저장소의 `assets/ajd-logo.png` (50x50 px). compose 가 n8n 편집기의 static 폴더에 연결해 `/static/ajd-logo.png` 로 보인다
+  - 파일: 저장소의 `assets/ajd-auto-logo.png` (50x50 px). compose 가 n8n 편집기의 static 폴더에 연결해 `/static/ajd-auto-logo.png` 로 보인다
   - 크기는 파일 크기로만 정해진다. n8n 2.44.7 스티키는 HTML(`<img width>`)을 막아 이미지를 원본 크기로 보여 준다. 크기를 바꾸려면 파일을 바꾼다
   - 주소는 `https://…` 나 `/static/<파일>.png`(jpg·jpeg·gif·webp)만 표시된다. `data:` 주소나 다른 경로는 지워진다
 

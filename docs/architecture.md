@@ -191,7 +191,7 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
   - 이유와 되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석, 되돌리는 방법은 [README](../README.md) '4. 버전 업그레이드' 에 있다.
 - 한글 환경 설정 참고: [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)
 - 설정: `services/n8n/.env` (버전 `N8N_VERSION`·`N8N_NODE_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`, `services/n8n/Dockerfile`
-- 스티키 노트 로고: 저장소의 `assets/ajd-logo.png` 를 편집기 static 폴더에 읽기 전용으로 연결해 `/static/ajd-logo.png` 로 보인다. 작성 규칙은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
+- 스티키 노트 로고: 저장소의 `assets/ajd-auto-logo.png` 를 편집기 static 폴더에 읽기 전용으로 연결해 `/static/ajd-auto-logo.png` 로 보인다. 작성 규칙은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ```bash
 cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력

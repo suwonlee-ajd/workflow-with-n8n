@@ -72,8 +72,8 @@ root
 5. **백업 경로 (`BACKUP_DIR`)**
    - 비우면 `data/backups`, 다른 위치는 절대 경로
    - `bin/n8n.sh backup` 과 백업 워크플로우(매일 18:00)가 같은 경로에 저장. 자세한 내용은 [docs/architecture.md](docs/architecture.md) '데이터가 저장되는 곳'
-6. **스티키 노트 로고 (`assets/ajd-logo.png`)**
-   - compose 가 n8n 편집기 static 폴더에 연결해 스티키에서 `![아정당](/static/ajd-logo.png)` 로 씀. 50x50 px 파일 크기 그대로 보임
+6. **스티키 노트 로고 (`assets/ajd-auto-logo.png`)**
+   - compose 가 n8n 편집기 static 폴더에 연결해 스티키에서 `![아정당](/static/ajd-auto-logo.png)` 로 씀. 50x50 px 파일 크기 그대로 보임
    - 작성 규칙: [workflow-builder.md](.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ---
@@ -120,7 +120,7 @@ bin/n8n.sh import    # services/n8n/workflows/*.json → n8n (3장)
 1. `bin/n8n.sh backup`
 2. `.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경. `.env.example`, README 뱃지·버전 표기, `docs/architecture.md` 서비스 표도 함께
 3. `bin/n8n.sh restart`: 새 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너 유지)
-4. 스티키 로고 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<N8N_PORT>/static/ajd-logo.png` 가 `200`
+4. 스티키 로고 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<N8N_PORT>/static/ajd-auto-logo.png` 가 `200`
 
 > **공식 이미지로 되돌리기**: 3단계 빌드가 ❌ 로 멈추면 메시지를 따릅니다. 공식 이미지의 Node 가 이미 보안 권고의 해결 버전이면 아래를 고치고 다시 `bin/n8n.sh restart` 합니다.
 > - 지움: `services/n8n/Dockerfile`·`.dockerignore`, `.env`·`.env.example` 의 `N8N_NODE_VERSION`
