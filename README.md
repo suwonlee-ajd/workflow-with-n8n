@@ -11,10 +11,6 @@
 
 Docker Compose로 n8n과 PostgreSQL을 띄우고, Claude Code가 n8n-mcp로 워크플로우를 만들고 운영하는 프로젝트입니다.
 
-인프런 강의 [Claude Code로 만드는 n8n 자동화 실전](https://www.inflearn.com/course/practical-n8n-automa)(데이터팝콘)을 듣고 실습한 내용을 바탕으로 작성했습니다.
-
-<a href="https://www.inflearn.com/course/practical-n8n-automa"><img src="https://cdn.inflearn.com/public/files/courses/341282/cover/01kpmbfazrpptyqghx5b3cmb1g.gif" alt="인프런 강의 「Claude Code로 만드는 n8n 자동화 실전」" width="400"></a>
-
 ---
 
 ## 📁 디렉터리 구조
@@ -244,6 +240,10 @@ const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 ---
 
 ## 📚 참조
+
+본 리포지토리는 인프런 강의 [Claude Code로 만드는 n8n 자동화 실전](https://www.inflearn.com/course/practical-n8n-automa)을 듣고 실습한 내용을 바탕으로 작성한 것입니다.
+
+<a href="https://www.inflearn.com/course/practical-n8n-automa"><img src="https://cdn.inflearn.com/public/files/courses/341282/cover/01kpmbfazrpptyqghx5b3cmb1g.gif" alt="인프런 강의 「Claude Code로 만드는 n8n 자동화 실전」" width="400"></a>
 
 | 자료 | 내용 |
 |---|---|
