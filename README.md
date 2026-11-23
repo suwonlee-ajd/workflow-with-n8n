@@ -76,14 +76,14 @@ root
 ## 🚀 빠른 시작
 
 ### 1. 접속 정보
-- **URL**: [http://localhost:5678](http://localhost:5678) — 포트는 `.env` 의 `N8N_PORT` (바꾸면 `N8N_WEBHOOK_URL` 도 수정 후 `bin/n8n.sh restart`)
+- **URL**: [http://localhost:5678](http://localhost:5678) — 포트는 `.env` 의 `N8N_PORT` (바꾸면 `N8N_WEBHOOK_URL` 도 수정 후 `bin/n8n.sh restart`. `.mcp.json` 의 `N8N_API_URL`, n8n-admin 의 `SERVER_URL` 도 같은 포트로)
 - 처음 접속하면 관리자 계정을 만듭니다.
 
 ### 2. 관리 명령어 (`bin/n8n.sh`)
 어느 위치에서 실행해도 프로젝트 루트 기준으로 동작합니다.
 
 ```bash
-bin/n8n.sh init      # 초기 설정 (clone 직후 1회): .env 생성, 비밀번호·암호화 키 생성, n8n-mcp 의존성 설치
+bin/n8n.sh init      # 초기 설정 (clone 직후 1회): .env 생성, 비밀번호·암호화 키 생성, n8n-mcp 의존성 설치. DB 볼륨이 이미 있으면 비밀번호는 만들지 않음 (5장)
 bin/n8n.sh start     # 실행 (백그라운드). n8n 이 응답할 때까지 기다리고, 뜨지 않으면 최근 로그를 보여 주고 실패 (아직 뜨는 중이면 경고만)
 bin/n8n.sh stop      # 중지. 컨테이너를 지우기 전에 로그를 logs/ 에 기록
 bin/n8n.sh restart   # 이미지 빌드 → 컨테이너 재생성 (.env 반영). 빌드가 실패하면 기존 컨테이너 유지
@@ -132,9 +132,18 @@ n8n DB 는 함께 뜨는 `postgres` 컨테이너(PostgreSQL 17)입니다. 설정
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | postgres 계정·비밀번호·DB 이름. n8n 도 같은 값으로 접속 |
 | `N8N_ENCRYPTION_KEY` | 크레덴셜 암호화 키. `n8n_data` 볼륨의 `config` 와 다르면 n8n 이 시작되지 않음 |
 
-- 비밀번호·암호화 키 생성: `bin/n8n.sh init` 이 비어 있는 값을 자동 생성 (직접 할 때: `openssl rand -hex 16`). DB 볼륨이 이미 있으면 새 비밀번호를 DB 에도 반영하고(n8n 이 실행 중이면 다시 띄움), 암호화 키는 볼륨에 저장된 키를 그대로 씀
+- 비밀번호·암호화 키 생성: `bin/n8n.sh init` 이 비어 있는 값을 자동 생성 (직접 할 때: `openssl rand -hex 16`)
+- 볼륨이 이미 있을 때의 `init` (다시 clone 했거나, 같은 PC 에 clone 이 하나 더 있을 때)
+  - 볼륨·컨테이너 이름이 고정이라 **한 PC 의 모든 clone 이 같은 DB 를 씁니다.** 두 폴더에서 동시에 띄울 수 없고, `POSTGRES_PASSWORD` 는 모든 폴더의 `.env` 가 같아야 합니다.
+  - 암호화 키: `.env` 를 비워 두고 볼륨에 저장된 키를 그대로 씀
+  - DB 비밀번호: 새로 만들지 않고 안내 후 멈춤. 쓰던 `.env` 의 `POSTGRES_PASSWORD` 값을 넣고 `init` 을 다시 실행
 - `POSTGRES_*` 는 DB 볼륨이 비어 있는 최초 기동 때만 적용. 나중에 비밀번호를 바꾸려면 DB 에서도 변경
   (`docker exec -it n8n-postgres psql -U n8n -c "ALTER USER n8n PASSWORD '<새 비밀번호>'"` → `.env` 수정 → `bin/n8n.sh restart`)
+- 쓰던 `.env` 를 잃었을 때 (DB 볼륨은 남아 있음): 새 비밀번호를 정해 DB 에 직접 반영. 컨테이너 안에서는 비밀번호 없이 접속됨
+  1. `.env` 의 `POSTGRES_PASSWORD` 에 새 값 입력 (`openssl rand -hex 16`)
+  2. `docker compose -f services/n8n/docker-compose.yml up -d postgres`
+  3. 위 `ALTER USER` 명령을 같은 값으로 실행
+  4. `bin/n8n.sh init` → `bin/n8n.sh start`. 이 볼륨을 쓰던 다른 폴더의 `.env` 도 같은 값으로 수정
 - 접속: `docker exec -it n8n-postgres psql -U n8n -d n8n` (호스트 포트 없음)
 - 덤프 복원: `gunzip -c data/backups/<YYYYMMDDHHMM>/n8n-postgres/n8n_db_<시각>.sql.gz | docker exec -i n8n-postgres psql -U n8n -d n8n`
 
@@ -249,7 +258,6 @@ const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 |---|---|
 | [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/) | 한국 표준시(KST)·UTF-8 한글 문자 인코딩 설정의 기준. '💡 한글 관련 실무 팁'의 출처 |
 | [n8n](https://github.com/n8n-io/n8n) · [문서](https://docs.n8n.io) · [릴리스](https://github.com/n8n-io/n8n/releases) | 워크플로우 엔진. stable 릴리스 버전으로 고정 |
-| [n8n v3.0 breaking changes](https://docs.n8n.io/changelog/v30-breaking-changes) | 3.0 업그레이드 전 확인 사항 (4장) |
 | [node 공식 이미지](https://hub.docker.com/_/node) · [ASEC Node.js 보안 업데이트 권고](https://asec.ahnlab.com/ko/96589/) | n8n 이미지에 넣는 Node.js 와 교체 이유 (주요 설정 0번) |
 | [postgres 공식 이미지](https://hub.docker.com/_/postgres) · [PostgreSQL 17 문서](https://www.postgresql.org/docs/17/) | n8n DB (5장) |
 | [czlonkowski/n8n-mcp](https://github.com/czlonkowski/n8n-mcp) | Claude Code 용 n8n MCP 서버 (6장) |
@@ -262,7 +270,7 @@ const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 
 ## 📄 라이선스
 
-[MIT License](LICENSE) 적용. 단, 아래는 라이센스 적용 대상이 아닙니다.
+[MIT License](LICENSE) 적용. 단, 아래는 라이선스 적용 대상이 아닙니다.
 
-- 이전 커밋의 로고 이미지(`assets/ajd-logo.png`, `assets/ajd-auto-logo.png`): 아정당 로고를 포함한 이미지. 지금은 저장소에서 삭제됨
+- 이전 커밋의 로고 이미지(`assets/ajd-logo.png`, `assets/ajd-auto-logo.png`): 로고를 포함한 이미지.
 - 함께 쓰는 n8n·n8n-mcp·n8n-admin 등: 각 프로젝트의 라이선스를 따름 ([참조](#-참조))
