@@ -2,6 +2,32 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.11.3] - 2026-11-23
+
+기능 변경 없음. 라이선스와 문서 정리.
+
+### 호환성
+
+- 설명 스티키 노트 첫 줄: 로고 이미지 → `⚙️` 이모지. 로고 파일을 지워 옛 로고 줄은 깨져 보임
+  - 기존 워크플로우: 스티키 첫 줄 `![아정당](/static/ajd-auto-logo.png)` 를 `⚙️` 로 교체
+  - 반영: `bin/n8n.sh restart` (compose 의 로고 연결 제거)
+
+### 추가
+
+- `LICENSE`: MIT. 적용 제외 대상은 `README.md` '라이선스' (이전 커밋의 로고 이미지, 함께 쓰는 프로젝트)
+- `README.md`: 바탕이 된 인프런 강의 안내와 썸네일 (이미지는 인프런 주소로 표시)
+- `docs/architecture.md`: README 와 같은 '디렉터리 구조' 절
+
+### 변경
+
+- 설명 스티키 노트 규칙 (`.claude/skills/n8n/references/workflow-builder.md`): 첫 줄을 `⚙️` 로, 로고 이미지 설명 삭제
+- `CLAUDE.md`: 표준 구조의 `assets/` 를 아직 쓰지 않는 폴더로
+
+### 삭제
+
+- `assets/ajd-auto-logo.png`(아정당 로고를 포함한 이미지)와 `assets/` 폴더, `services/n8n/docker-compose.yml` 의 로고 연결
+- `README.md`: 주요 설정 6번(스티키 로고), 버전 업그레이드 4단계(로고 확인)
+
 ## [0.11.2] - 2026-11-20
 
 ### 호환성
