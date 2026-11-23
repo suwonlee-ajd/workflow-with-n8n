@@ -2,6 +2,33 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.12.1] - 2026-11-23
+
+### 호환성
+
+- `bin/n8n.sh init`: DB 볼륨(`n8n_postgres_data`)이 이미 있고 `POSTGRES_PASSWORD` 가 비어 있으면 비밀번호를 만들지 않고 안내 후 실패로 끝남
+  - 쓰던 `.env` 가 있으면: 그 값을 `services/n8n/.env` 에 넣고 `init` 다시 실행
+  - 쓰던 `.env` 를 잃었으면: `README.md` 5장 '쓰던 .env 를 잃었을 때' 순서로 DB 비밀번호를 직접 변경
+
+### 수정
+
+- `bin/n8n.sh init`: 같은 PC 의 다른 폴더에 clone 해 `init` 하면, 원래 폴더가 쓰던 DB 의 비밀번호가 바뀌어 다음 재시작 때 n8n 이 DB 에 접속하지 못하던 문제
+  - 원인: 볼륨·컨테이너 이름이 고정이라 모든 clone 이 같은 DB 를 쓰는데, `init` 이 볼륨의 비밀번호를 묻지 않고 새 값으로 바꿈
+  - 안내에 지금 그 볼륨의 컨테이너를 띄운 폴더를 표시 (컨테이너가 있을 때만)
+  - 안내 후에도 n8n-mcp 의존성 설치까지는 진행
+
+### 삭제
+
+- `bin/n8n.sh init`: DB 비밀번호 자동 변경과 그에 따른 n8n 재기동 (0.12.0 에서 추가)
+
+### 변경
+
+- `bin/n8n.sh`: 주석을 줄임 (동작 변경 없음)
+- `README.md`: 5장에 한 PC 의 모든 clone 이 같은 DB 를 쓴다는 점, 볼륨이 이미 있을 때의 `init` 동작, `.env` 를 잃었을 때의 순서 추가. 포트 변경 시 함께 고칠 곳(`.mcp.json`, n8n-admin) 표기, 참조 표의 n8n 3.0 행 삭제, '라이센스' 표기 통일
+- `docs/architecture.md`: 사전 준비에 git·openssl·curl 추가(pnpm 은 n8n-admin 용), 설치 순서 2~4번을 `init` 이 하는 일에 맞춤
+- `docs/code-style.md`: 출력 이모지 표에 `init` 이 쓰는 것 추가, `.env.example` 의 `★` 뜻을 현재 템플릿에 맞춤
+- `.claude/skills/n8n/`: 오타 수정 (`SKILL.md` 설명, `ops-manager.md` 예시의 미접속 일수)
+
 ## [0.12.0] - 2026-11-23
 
 ### 추가

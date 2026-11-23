@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.12.0 |
+| 문서 버전 | 0.12.1 |
 | 최종 수정 | 2026-11-23 |
 
 이 프로젝트를 이루는 서비스와 그 연결 관계, 저장소 디렉터리 구조, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
@@ -216,7 +216,7 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 
 ## 서비스별 출처와 설치
 
-사전 준비: Docker(Compose 포함), Node.js(보안 권고의 해결 버전 이상, README 6장), npm, pnpm.
+사전 준비: git, Docker(Compose 포함), Node.js(보안 권고의 해결 버전 이상, README 6장)와 npm, openssl, curl. pnpm 은 n8n-admin 을 쓸 때만 필요하다.
 
 ### n8n
 
@@ -234,13 +234,15 @@ bin/n8n.sh start   # http://localhost:5678
 
 처음 접속하면 관리자 계정을 만든다. 이어서 **Settings > n8n API** 에서 API 키를 만들어 `.env` 의 `N8N_API_KEY` 에 넣는다.
 
+볼륨(`n8n_data`, `n8n_postgres_data`)과 컨테이너 이름이 고정이라 한 PC 에서는 n8n 을 하나만 띄운다. 같은 PC 의 다른 폴더에 clone 해도 같은 DB 를 쓰므로, `init` 은 DB 볼륨이 이미 있으면 비밀번호를 새로 만들지 않고 안내 후 멈춘다 ([README](../README.md) 5장).
+
 ### PostgreSQL
 
 - 출처: [Docker 공식 이미지 postgres](https://hub.docker.com/_/postgres) · [문서](https://www.postgresql.org/docs/17/)
 - 이미지: `postgres:17-alpine`
 - 설정: `services/n8n/.env` 의 `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
 
-따로 설치하지 않는다. `bin/n8n.sh start` 가 n8n 과 함께 띄운다. 계정과 DB 는 볼륨이 비어 있는 최초 기동 때만 만들어진다.
+따로 설치하지 않는다. `bin/n8n.sh start` 가 n8n 과 함께 띄운다. 계정과 DB 는 볼륨이 비어 있는 최초 기동 때만 만들어진다. 그 뒤에는 `.env` 의 `POSTGRES_PASSWORD` 만 바꿔도 DB 에 반영되지 않아 n8n 이 접속하지 못한다.
 
 ### n8n-mcp
 
@@ -287,9 +289,10 @@ bin/n8n-admin.sh start                                       # http://localhost:
 새 PC 에 처음 구성할 때의 순서다. 자세한 설명은 README 의 각 장을 따른다.
 
 1. 리포지토리 받기: `git clone --recurse-submodules <주소>`
-2. n8n 과 PostgreSQL 실행: `bin/n8n.sh init` 으로 `.env` 를 만든 뒤 `bin/n8n.sh start` (README 1~2장, 5장)
-3. n8n 관리자 계정과 API 키 만들기
-4. n8n-mcp 설치와 Claude Code 연결 (README 6장)
+2. n8n 과 PostgreSQL 실행: `bin/n8n.sh init` 으로 `.env` 를 만들고 n8n-mcp 의존성을 설치한 뒤 `bin/n8n.sh start` (README 1~2장, 5장)
+   - 이 PC 에서 n8n 을 띄운 적이 있으면(DB 볼륨이 남아 있으면) `init` 이 비밀번호 안내 후 멈춘다. README 5장을 따른다
+3. n8n 관리자 계정과 API 키 만들기: 키는 `.env` 의 `N8N_API_KEY` 에 입력
+4. Claude Code 연결: 새로 열어 `n8n-mcp` 승인 (README 6장)
 5. n8n-mcp-skills 플러그인 설치
 6. (선택) n8n-admin 설치와 실행 (README 7장)
 7. 워크플로우 옮기기: 저장소에는 워크플로우 JSON 이 없으므로, 기존 n8n 의 백업(`bin/n8n.sh backup`)에서 DB 덤프를 복원하거나, 백업에 든 워크플로우 JSON 을 `services/n8n/workflows/` 에 넣고 `bin/n8n.sh import` 한다 (README 3장, 5장). `import` 로 가져온 워크플로우는 모두 비활성 상태이고, 크레덴셜은 다시 연결해야 한다
