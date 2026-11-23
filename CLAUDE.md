@@ -34,7 +34,7 @@
 
 ```text
 root
-├── assets/**           # 이미지 등 정적 파일 (n8n 스티키 노트 로고)
+├── assets/**           # 이미지 등 정적 파일
 ├── bin/                # 쉘, 바이너리 등 전체 제어 스크립트
 ├── config/**           # DB, 앱 등 yaml, properties, toml 등 설정 파일
 ├── data/**             # 백업 등 실행 결과물 (git 제외)
@@ -46,7 +46,7 @@ root
 └── README.md           # 프로젝트 개요 및 설명
 ```
 
-- 표준 구조이며 `config/`, `deploy/`, `tests/`는 아직 쓰지 않는다. 필요할 때 만든다.
+- 표준 구조이며 `assets/`, `config/`, `deploy/`, `tests/`는 아직 쓰지 않는다. 필요할 때 만든다.
 - 현재 서비스: `services/n8n`, `services/n8n-mcp`, `services/n8n-admin`(서브모듈). 실제 파일 구성은 README의 디렉터리 구조를 따른다.
 - `services/n8n-admin`은 외부 리포지토리다. 내부 파일을 수정하지 않고, 리뷰 대상에서도 제외한다.
 

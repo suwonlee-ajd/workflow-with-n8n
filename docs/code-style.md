@@ -245,7 +245,7 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 
 ## 7. n8n 워크플로우
 
-워크플로우 이름, 캔버스 그룹, 설명 스티키 노트(로고·제목·요약)는 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'을 따른다. 여기서는 노드와 설정을 다룬다.
+워크플로우 이름, 캔버스 그룹, 설명 스티키 노트(⚙️·제목·요약)는 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '네이밍 컨벤션'을 따른다. 여기서는 노드와 설정을 다룬다.
 
 ### 노드 이름
 
