@@ -44,7 +44,7 @@ MCP 도구 호출 실패 시 아래 안내를 사용자에게 제공한다:
 
 | 에러 상황 | 안내 |
 |----------|------|
-| MCP 연결 실패 / 도구 미발견 | "n8n MCP 서버가 연결되지 않았습니다. README 6장 순서대로 `services/n8n-mcp`에서 `npm ci`를 실행하고 `services/n8n/.env`에 `N8N_API_KEY`를 넣은 뒤, Claude Code를 다시 시작해 `/mcp`에서 `n8n-mcp` 연결을 확인해주세요. n8n이 꺼져 있으면 `bin/n8n.sh start`로 먼저 실행해주세요." |
+| MCP 연결 실패 / 도구 미발견 | "n8n MCP 서버가 연결되지 않았습니다. README 6장 순서대로 `bin/n8n.sh init`을 실행하고(.env 생성, 의존성 설치) `services/n8n/.env`에 `N8N_API_KEY`를 넣은 뒤, Claude Code를 다시 시작해 `/mcp`에서 `n8n-mcp` 연결을 확인해주세요. n8n이 꺼져 있으면 `bin/n8n.sh start`로 먼저 실행해주세요." |
 | HTTP 401 / 인증 실패 | "API 키가 만료되었거나 잘못되었습니다. n8n → Settings → n8n API에서 키를 새로 만들어 `services/n8n/.env`의 `N8N_API_KEY`를 바꾼 뒤 Claude Code를 다시 시작해주세요." |
 | HTTP 403 / 권한 부족 | "이 작업에는 Owner 권한이 필요합니다. n8n 관리자에게 문의해주세요." |
 | 노드 미발견 (search_nodes 결과 없음) | "이 노드는 커뮤니티 노드일 수 있습니다. n8n → Settings → Community Nodes에서 먼저 설치해주세요." |

@@ -2,6 +2,25 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.12.0] - 2026-11-23
+
+### 추가
+
+- `bin/n8n.sh init`: clone 직후 초기 설정 (다시 실행해도 안전)
+  - `services/n8n/.env` 가 없으면 `.env.example` 을 복사 (권한 600), 있으면 빈 비밀값만 채움
+  - `N8N_ENCRYPTION_KEY`·`POSTGRES_PASSWORD` 자동 생성
+  - 볼륨이 이미 있을 때: 암호화 키는 볼륨의 키를 그대로 쓰고, DB 비밀번호는 DB 에도 반영 (n8n 이 실행 중이면 다시 띄움)
+  - n8n-mcp 의존성 설치 (`npm ci`): 실행 파일이 없거나 설치 내용이 `package.json` 과 다를 때
+
+### 변경
+
+- `bin/n8n.sh start`·`restart`: n8n 이 응답할 때까지 대기 (`/healthz/readiness`, 기본 120초 `HEALTH_TIMEOUT`)
+  - 재시작을 반복하거나 컨테이너가 꺼지면 최근 로그를 보여 주고 실패
+  - 시간이 지났어도 재시작 없이 실행 중이면 경고만
+- `bin/n8n.sh`: `.env` 가 없으면 `init` 을 안내하고 중단
+- `README.md`, `docs/architecture.md`, `services/n8n/.env.example`, `.claude/skills/n8n/SKILL.md`: 설치 안내를 `init` 기준으로
+- `README.md`: Stars 뱃지 삭제, 라이선스 문구 수정
+
 ## [0.11.4] - 2026-11-23
 
 ### 변경
