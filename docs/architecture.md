@@ -2,10 +2,10 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | 0.11.2 |
-| 최종 수정 | 2026-11-20 |
+| 문서 버전 | 0.11.3 |
+| 최종 수정 | 2026-11-23 |
 
-이 프로젝트를 이루는 서비스와 그 연결 관계, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
+이 프로젝트를 이루는 서비스와 그 연결 관계, 저장소 디렉터리 구조, n8n 위에서 도는 워크플로우의 구조, 각 서비스의 출처와 설치 방법을 정리한다.
 
 ## 시스템 구성도
 
@@ -115,6 +115,41 @@
 
 이 프로젝트의 애플리케이션은 n8n 에 올린 워크플로우다. 실제로 실행되는 것은 n8n DB 에 저장된 워크플로우이며, 현재 코드 저장소에는 워크플로우 JSON 이 없다. 필요할 때 `bin/n8n.sh export` 로 `services/n8n/workflows/` 에 내보낸다.
 
+### 디렉터리 구조
+
+저장소의 파일 구성이다. [README](../README.md) '디렉터리 구조'와 같게 유지하며, 괄호 안의 장·번호는 README 기준이다.
+
+```text
+root
+├── .claude/                         # Claude Code 규칙·스킬·설정
+├── bin/                             # 실행 스크립트
+│   ├── n8n.sh
+│   └── n8n-admin.sh
+├── services/
+│   ├── n8n                          # n8n (docker 배포 이미지 사용)
+│   │   ├── .env                     # 환경변수 — 비밀값 포함.
+│   │   ├── .env.example             # .env 템플릿 — 복사 후 ★ 항목 입력
+│   │   ├── docker-compose.yml       # docker 컨테이너 정의
+│   │   ├── Dockerfile               # n8n 공식 이미지의 Node.js 만 보안 패치 버전으로 교체
+│   │   ├── .dockerignore            # 빌드 컨텍스트 전부 제외
+│   │   └── workflows/               # bin/n8n.sh export 결과 JSON
+│   │
+│   ├── n8n-mcp                      # n8n-mcp
+│   └── n8n-admin/                   # n8n-admin (데이터팝콘 제작)
+├── .gitmodules                      # 서브모듈 원격 주소
+├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장)
+├── data/                            # 데이터 계층
+│   └── backups/                     # 백업 <YYYYMMDDHHMM>/<서비스명>/ (git 제외, 주요 설정 5번)
+├── logs/                            # 컨테이너 로그 <YYYY>/<YYYY.MM>/<서비스명>.<YYYY-MM-DD>.log (git 제외)
+├── docs/                            # 프로젝트 문서
+│   ├── architecture.md              # 시스템 구성도, 연결 관계, 워크플로우 구조 등
+│   ├── logging.md                   # 로깅 관련
+│   └── code-style.md                # 코드 스타일
+├── CHANGELOG.md                     # 버전별 변경 기록
+├── CLAUDE.md                        # Claude Code 프로젝트 규칙
+└── README.md
+```
+
 ### 워크플로우 계층
 
 워크플로우는 실행 역할에 따라 세 유형으로 나누고, 이름 앞에 유형을 붙인다 (`[유형] 도메인: 기능`).
@@ -147,7 +182,7 @@
 | `[서브]` | 다른 워크플로우의 Execute Workflow 노드 | 여러 곳에서 쓰는 공통 로직. 입력을 받아 처리하고 결과를 돌려준다 |
 | `[에러]` | Error Trigger | 다른 워크플로우가 실패했을 때 n8n 이 대신 실행한다. 실패 내용을 알린다 |
 
-이름 규칙, 캔버스 그룹 규칙, 설명 스티키 노트(로고·제목·요약) 규칙은 [.claude/skills/n8n/references/workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) 의 '네이밍 컨벤션'에 있다.
+이름 규칙, 캔버스 그룹 규칙, 설명 스티키 노트(⚙️·제목·요약) 규칙은 [.claude/skills/n8n/references/workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) 의 '네이밍 컨벤션'에 있다.
 
 ### 워크플로우 예시
 
@@ -191,7 +226,6 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
   - 이유와 되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석, 되돌리는 방법은 [README](../README.md) '4. 버전 업그레이드' 에 있다.
 - 한글 환경 설정 참고: [EddyGlen n8n 한글 설정 가이드](https://eddyglen.com/n8n-korean-language-setup/)
 - 설정: `services/n8n/.env` (버전 `N8N_VERSION`·`N8N_NODE_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`, `services/n8n/Dockerfile`
-- 스티키 노트 로고: 저장소의 `assets/ajd-auto-logo.png` 를 편집기 static 폴더에 읽기 전용으로 연결해 `/static/ajd-auto-logo.png` 로 보인다. 작성 규칙은 [workflow-builder.md](../.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ```bash
 cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력

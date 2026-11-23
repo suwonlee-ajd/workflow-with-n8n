@@ -11,6 +11,10 @@
 
 Docker Compose로 n8n과 PostgreSQL을 띄우고, Claude Code가 n8n-mcp로 워크플로우를 만들고 운영하는 프로젝트입니다.
 
+인프런 강의 [Claude Code로 만드는 n8n 자동화 실전](https://www.inflearn.com/course/practical-n8n-automa)(데이터팝콘)을 듣고 실습한 내용을 바탕으로 작성했습니다.
+
+<a href="https://www.inflearn.com/course/practical-n8n-automa"><img src="https://cdn.inflearn.com/public/files/courses/341282/cover/01kpmbfazrpptyqghx5b3cmb1g.gif" alt="인프런 강의 「Claude Code로 만드는 n8n 자동화 실전」" width="400"></a>
+
 ---
 
 ## 📁 디렉터리 구조
@@ -18,7 +22,6 @@ Docker Compose로 n8n과 PostgreSQL을 띄우고, Claude Code가 n8n-mcp로 워�
 ```text
 root
 ├── .claude/                         # Claude Code 규칙·스킬·설정
-├── assets/                          # 로고 이미지 등
 ├── bin/                             # 실행 스크립트
 │   ├── n8n.sh                       
 │   └── n8n-admin.sh                 
@@ -72,9 +75,6 @@ root
 5. **백업 경로 (`BACKUP_DIR`)**
    - 비우면 `data/backups`, 다른 위치는 절대 경로
    - `bin/n8n.sh backup` 과 백업 워크플로우(매일 18:00)가 같은 경로에 저장. 자세한 내용은 [docs/architecture.md](docs/architecture.md) '데이터가 저장되는 곳'
-6. **스티키 노트 로고 (`assets/ajd-auto-logo.png`)**
-   - compose 가 n8n 편집기 static 폴더에 연결해 스티키에서 `![아정당](/static/ajd-auto-logo.png)` 로 씀. 50x50 px 파일 크기 그대로 보임
-   - 작성 규칙: [workflow-builder.md](.claude/skills/n8n/references/workflow-builder.md) '설명 스티키 노트'
 
 ---
 
@@ -120,7 +120,6 @@ bin/n8n.sh import    # services/n8n/workflows/*.json → n8n (3장)
 1. `bin/n8n.sh backup`
 2. `.env` 의 `N8N_VERSION` 을 새 stable 버전으로 변경. `.env.example`, README 뱃지·버전 표기, `docs/architecture.md` 서비스 표도 함께
 3. `bin/n8n.sh restart`: 새 공식 이미지를 받아 로컬 이미지를 빌드한 뒤 재시작 (빌드가 실패하면 기존 컨테이너 유지)
-4. 스티키 로고 확인: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<N8N_PORT>/static/ajd-auto-logo.png` 가 `200`
 
 > **공식 이미지로 되돌리기**: 3단계 빌드가 ❌ 로 멈추면 메시지를 따릅니다. 공식 이미지의 Node 가 이미 보안 권고의 해결 버전이면 아래를 고치고 다시 `bin/n8n.sh restart` 합니다.
 > - 지움: `services/n8n/Dockerfile`·`.dockerignore`, `.env`·`.env.example` 의 `N8N_NODE_VERSION`
@@ -258,3 +257,12 @@ const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 | [team-datapopcorn/n8n-admin](https://github.com/team-datapopcorn/n8n-admin) | 관리 대시보드, git 서브모듈 (7장) |
 
 서비스별 설치 방법은 [docs/architecture.md](docs/architecture.md) '서비스별 출처와 설치'를 참고합니다.
+
+---
+
+## 📄 라이선스
+
+[MIT](LICENSE). 단, 아래는 MIT 적용 대상이 아닙니다.
+
+- 이전 커밋의 로고 이미지(`assets/ajd-logo.png`, `assets/ajd-auto-logo.png`): 아정당 로고를 포함한 이미지. 지금은 저장소에서 삭제됨
+- 함께 쓰는 n8n·n8n-mcp·n8n-admin 등: 각 프로젝트의 라이선스를 따름 ([참조](#-참조))
