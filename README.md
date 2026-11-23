@@ -1,7 +1,6 @@
 # n8n + claude code 환경 Docker 설정
 
 ![License](https://img.shields.io/github/license/suwonlee-ajd/workflow-with-n8n)
-![Stars](https://img.shields.io/github/stars/suwonlee-ajd/workflow-with-n8n)
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-required-2496ED?logo=docker&logoColor=white)
 ![n8n](https://img.shields.io/badge/n8n-2.44.7-EA4B71?logo=n8n&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
@@ -262,7 +261,7 @@ const formatted = now.toFormat('yyyy년 MM월 dd일 HH:mm');
 
 ## 📄 라이선스
 
-[MIT](LICENSE). 단, 아래는 MIT 적용 대상이 아닙니다.
+[MIT License](LICENSE) 적용. 단, 아래는 라이센스 적용 대상이 아닙니다.
 
 - 이전 커밋의 로고 이미지(`assets/ajd-logo.png`, `assets/ajd-auto-logo.png`): 아정당 로고를 포함한 이미지. 지금은 저장소에서 삭제됨
 - 함께 쓰는 n8n·n8n-mcp·n8n-admin 등: 각 프로젝트의 라이선스를 따름 ([참조](#-참조))
