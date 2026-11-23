@@ -23,7 +23,7 @@ root
 ├── services/
 │   ├── n8n                          # n8n (docker 배포 이미지 사용)
 │   │   ├── .env                     # 환경변수 — 비밀값 포함.
-│   │   ├── .env.example             # .env 템플릿 — 복사 후 ★ 항목 입력
+│   │   ├── .env.example             # .env 템플릿 — bin/n8n.sh init 이 복사, ★ 는 비밀값
 │   │   ├── docker-compose.yml       # docker 컨테이너 정의
 │   │   ├── Dockerfile               # n8n 공식 이미지의 Node.js 만 보안 패치 버전으로 교체
 │   │   ├── .dockerignore            # 빌드 컨텍스트 전부 제외
@@ -83,7 +83,8 @@ root
 어느 위치에서 실행해도 프로젝트 루트 기준으로 동작합니다.
 
 ```bash
-bin/n8n.sh start     # 실행 (백그라운드)
+bin/n8n.sh init      # 초기 설정 (clone 직후 1회): .env 생성, 비밀번호·암호화 키 생성, n8n-mcp 의존성 설치
+bin/n8n.sh start     # 실행 (백그라운드). n8n 이 응답할 때까지 기다리고, 뜨지 않으면 최근 로그를 보여 주고 실패 (아직 뜨는 중이면 경고만)
 bin/n8n.sh stop      # 중지. 컨테이너를 지우기 전에 로그를 logs/ 에 기록
 bin/n8n.sh restart   # 이미지 빌드 → 컨테이너 재생성 (.env 반영). 빌드가 실패하면 기존 컨테이너 유지
 bin/n8n.sh logs      # 실시간 로그
@@ -131,7 +132,7 @@ n8n DB 는 함께 뜨는 `postgres` 컨테이너(PostgreSQL 17)입니다. 설정
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | postgres 계정·비밀번호·DB 이름. n8n 도 같은 값으로 접속 |
 | `N8N_ENCRYPTION_KEY` | 크레덴셜 암호화 키. `n8n_data` 볼륨의 `config` 와 다르면 n8n 이 시작되지 않음 |
 
-- 비밀번호·암호화 키 생성: `openssl rand -hex 16`
+- 비밀번호·암호화 키 생성: `bin/n8n.sh init` 이 비어 있는 값을 자동 생성 (직접 할 때: `openssl rand -hex 16`). DB 볼륨이 이미 있으면 새 비밀번호를 DB 에도 반영하고(n8n 이 실행 중이면 다시 띄움), 암호화 키는 볼륨에 저장된 키를 그대로 씀
 - `POSTGRES_*` 는 DB 볼륨이 비어 있는 최초 기동 때만 적용. 나중에 비밀번호를 바꾸려면 DB 에서도 변경
   (`docker exec -it n8n-postgres psql -U n8n -c "ALTER USER n8n PASSWORD '<새 비밀번호>'"` → `.env` 수정 → `bin/n8n.sh restart`)
 - 접속: `docker exec -it n8n-postgres psql -U n8n -d n8n` (호스트 포트 없음)
@@ -140,7 +141,7 @@ n8n DB 는 함께 뜨는 `postgres` 컨테이너(PostgreSQL 17)입니다. 설정
 ### 6. Claude Code 연동 (n8n-mcp)
 Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n 의 워크플로우를 만들고 조회·검증합니다. 서버는 `services/n8n-mcp/` 에 설치하고 `.mcp.json` 으로 등록합니다.
 
-1. **설치** (clone 직후 1회): `cd services/n8n-mcp && npm ci`
+1. **설치** (clone 직후 1회): `bin/n8n.sh init` (직접 할 때: `cd services/n8n-mcp && npm ci`)
    - 버전은 `package.json` 에 고정. 올릴 때: 버전 변경 → `npm install` → README 뱃지(n8n-mcp, Node `engines`) 수정 → Claude Code 세션 새로 시작
    - 호스트 Node 는 `engines` 범위 안에서 보안 권고의 해결 버전 이상 (2026-11 기준 22.23.5·24.22.3·26.13.1, 근거는 `services/n8n/Dockerfile` 주석)
 2. **API 키**: n8n **Settings > n8n API** 에서 만들어 `.env` 의 `N8N_API_KEY` 에 넣습니다. `.mcp.json` 은 실행할 때 이 값을 읽으므로 비밀값이 없습니다.

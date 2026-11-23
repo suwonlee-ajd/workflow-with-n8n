@@ -128,7 +128,7 @@ root
 ├── services/
 │   ├── n8n                          # n8n (docker 배포 이미지 사용)
 │   │   ├── .env                     # 환경변수 — 비밀값 포함.
-│   │   ├── .env.example             # .env 템플릿 — 복사 후 ★ 항목 입력
+│   │   ├── .env.example             # .env 템플릿 — bin/n8n.sh init 이 복사, ★ 는 비밀값
 │   │   ├── docker-compose.yml       # docker 컨테이너 정의
 │   │   ├── Dockerfile               # n8n 공식 이미지의 Node.js 만 보안 패치 버전으로 교체
 │   │   ├── .dockerignore            # 빌드 컨텍스트 전부 제외
@@ -228,8 +228,8 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 - 설정: `services/n8n/.env` (버전 `N8N_VERSION`·`N8N_NODE_VERSION`, 포트 `N8N_PORT`), `services/n8n/docker-compose.yml`, `services/n8n/Dockerfile`
 
 ```bash
-cp services/n8n/.env.example services/n8n/.env   # ★ 표시 항목(DB 비밀번호, 암호화 키) 입력
-bin/n8n.sh start                                 # http://localhost:5678
+bin/n8n.sh init    # .env 생성, DB 비밀번호·암호화 키 자동 생성, n8n-mcp 의존성 설치
+bin/n8n.sh start   # http://localhost:5678
 ```
 
 처음 접속하면 관리자 계정을 만든다. 이어서 **Settings > n8n API** 에서 API 키를 만들어 `.env` 의 `N8N_API_KEY` 에 넣는다.
@@ -249,7 +249,8 @@ bin/n8n.sh start                                 # http://localhost:5678
 - 설정: `.mcp.json` (n8n 주소 `N8N_API_URL`, 웹훅 보안 모드, 통계 전송 끔). API 키는 실행할 때 `services/n8n/.env` 에서 읽는다
 
 ```bash
-cd services/n8n-mcp && npm ci
+bin/n8n.sh init                   # n8n 설치 때 이미 실행했으면 생략
+cd services/n8n-mcp && npm ci     # 직접 설치할 때
 ```
 
 설치 후 Claude Code 를 새로 열어 프로젝트 MCP 서버 `n8n-mcp` 를 승인하고 `/mcp` 로 연결을 확인한다. 버전을 올릴 때는 `package.json` 의 버전을 바꾸고 `npm install` 한 뒤 Claude Code 를 다시 시작한다.
@@ -286,7 +287,7 @@ bin/n8n-admin.sh start                                       # http://localhost:
 새 PC 에 처음 구성할 때의 순서다. 자세한 설명은 README 의 각 장을 따른다.
 
 1. 리포지토리 받기: `git clone --recurse-submodules <주소>`
-2. n8n 과 PostgreSQL 실행: `.env` 작성 후 `bin/n8n.sh start` (README 1~2장, 5장)
+2. n8n 과 PostgreSQL 실행: `bin/n8n.sh init` 으로 `.env` 를 만든 뒤 `bin/n8n.sh start` (README 1~2장, 5장)
 3. n8n 관리자 계정과 API 키 만들기
 4. n8n-mcp 설치와 Claude Code 연결 (README 6장)
 5. n8n-mcp-skills 플러그인 설치
