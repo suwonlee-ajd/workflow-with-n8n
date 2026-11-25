@@ -21,7 +21,7 @@ root
 │   ├── n8n.sh                       
 │   └── n8n-admin.sh                 
 ├── services/
-│   ├── n8n                          # n8n (docker 배포 이미지 사용)
+│   ├── n8n                          # n8n (Node 를 교체한 로컬 빌드 이미지)
 │   │   ├── .env                     # 환경변수 — 비밀값 포함.
 │   │   ├── .env.example             # .env 템플릿 — bin/n8n.sh init 이 복사, ★ 는 비밀값
 │   │   ├── docker-compose.yml       # docker 컨테이너 정의
