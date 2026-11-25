@@ -9,8 +9,10 @@ x-logging: &default-logging
 
 services:
   postgres:
-    # PostgreSQL 17: n8n 2.44.7 기준 지원 범위가 17 이상 (16 은 호환 모드 경고)
-    image: postgres:17-alpine
+    # PostgreSQL 17.12: 마이너까지 고정
+    # - n8n 지원 범위 17·18, 16 은 호환용 (n8n 문서 Supported PostgreSQL versions, 2026-11-25 확인)
+    # - n8n 권장: 같은 메이저의 최신 마이너
+    image: postgres:17.12-alpine
     container_name: n8n-postgres
     restart: unless-stopped
     logging: *default-logging

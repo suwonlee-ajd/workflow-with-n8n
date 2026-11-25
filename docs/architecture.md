@@ -47,9 +47,9 @@
 
 | 서비스 | 역할 | 실행 방식 | 포트 | 버전 |
 |--------|------|-----------|------|------|
-| n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 5678 | 2.44.7 (Node 26.13.1 로 교체) |
-| PostgreSQL | n8n 데이터 저장 | Docker 컨테이너 `n8n-postgres` | 없음 (Docker 내부 5432) | 17 |
-| n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.1 |
+| n8n | 워크플로우 엔진, 화면, 웹훅 | Docker 컨테이너 `n8n` | 5678 | 2.49.5 (Node 26.13.1 로 교체) |
+| PostgreSQL | n8n 데이터 저장 | Docker 컨테이너 `n8n-postgres` | 없음 (Docker 내부 5432) | 17.12 |
+| n8n-mcp | Claude Code 가 n8n 을 다루는 MCP 서버 | Claude Code 가 필요할 때 실행 (stdio) | 없음 | 2.103.2 |
 | n8n-mcp-skills | n8n-mcp 사용법 스킬 묶음 | Claude Code 플러그인 | 없음 | 1.37.1 |
 | n8n-admin (부가) | 워크플로우·유저·크레덴셜 관리 대시보드 | 호스트에서 Next.js 실행 | 3000 | 1.2.0 |
 
@@ -239,7 +239,7 @@ bin/n8n.sh start   # http://localhost:5678
 ### PostgreSQL
 
 - 출처: [Docker 공식 이미지 postgres](https://hub.docker.com/_/postgres) · [문서](https://www.postgresql.org/docs/17/)
-- 이미지: `postgres:17-alpine`
+- 이미지: `postgres:17.12-alpine`
 - 설정: `services/n8n/.env` 의 `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
 
 따로 설치하지 않는다. `bin/n8n.sh start` 가 n8n 과 함께 띄운다. 계정과 DB 는 볼륨이 비어 있는 최초 기동 때만 만들어진다. 그 뒤에는 `.env` 의 `POSTGRES_PASSWORD` 만 바꿔도 DB 에 반영되지 않아 n8n 이 접속하지 못한다.

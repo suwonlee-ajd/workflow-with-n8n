@@ -23,7 +23,7 @@
 | 파일 이름 | 영문 소문자, 단어는 하이픈으로 연결 (`n8n-admin.sh`, `code-style.md`) |
 | 경로 | 프로젝트 루트 기준 상대 경로 (`services/n8n/.env`) |
 | 비밀값 | `.env`(git 제외)에만 둠. 코드·문서·커밋·워크플로우 파라미터에는 쓰지 않음 |
-| 버전 | 정확한 버전으로 고정 (`N8N_VERSION=2.44.7`, `"n8n-mcp": "2.103.1"`). `latest`, `^`, `~` 쓰지 않음 |
+| 버전 | 정확한 버전으로 고정 (`N8N_VERSION=2.49.5`, `"n8n-mcp": "2.103.2"`). `latest`, `^`, `~` 쓰지 않음 |
 
 ### 주석
 
@@ -242,7 +242,7 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 - 비교와 목록은 표로. 구성도와 디렉터리 트리는 ```` ```text ````, 명령은 ```` ```bash ```` 블록
 - 코드, 경로, 명령, 키, 노드 이름은 백틱으로 감쌈
 - 다른 문서는 상대 경로로 링크. 같은 규칙을 두 곳에 쓰지 않고 원본 문서에 링크
-- 버전에 따라 달라지는 내용에는 기준 버전 표시 (`n8n-mcp 2.103.1 기준`)
+- 버전에 따라 달라지는 내용에는 기준 버전 표시 (`n8n-mcp 2.103.2 기준`)
 - 새 문서를 만들면 [CLAUDE.md](../CLAUDE.md) '개요' 표와 [README](../README.md) '디렉터리 구조'에 등록
 - 예시에는 실제 비밀값이나 개인 정보 대신 가짜 값 사용 (`admin@co.kr`)
 
@@ -285,13 +285,13 @@ n8n-mcp-skills 등 n8n 도구를 활용하여 워크플로우를 생성하고, �
 
 ### 노드 버전
 
-- 노드 `typeVersion` 은 실행 중인 n8n(`N8N_VERSION`, 현재 2.44.7)이 지원하는 값으로 씀
+- 노드 `typeVersion` 은 실행 중인 n8n(`N8N_VERSION`, 현재 2.49.5)이 지원하는 값으로 씀
   - 이유: n8n-mcp 가 더 새 버전을 알려 줄 수 있음
-  - 예: Convert to File 은 2.44.7 에서 1.1 까지인데 1.2 로 만들자, 화면에서 저장할 때 설정이 비워져 CSV 로 바뀜
+  - 예: 2.44.7 때 Convert to File 은 1.1 까지였는데 1.2 로 만들자, 화면에서 저장할 때 설정이 비워져 CSV 로 바뀜
 - 확인: 컨테이너 안 노드 정의의 `version`
 
 ```bash
-# 예: Convert to File (2.44.7 기준 [1, 1.1])
+# 예: Convert to File (2.49.5 기준 [1, 1.1, 1.2])
 docker exec n8n sh -c 'grep -o "version: \[[^]]*\]" $(find /usr/local/lib/node_modules/n8n -path "*n8n-nodes-base/dist/nodes/Files/ConvertToFile/ConvertToFile.node.js" | head -1)'
 ```
 
