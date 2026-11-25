@@ -2,9 +2,9 @@
 
 ![License](https://img.shields.io/github/license/suwonlee-ajd/workflow-with-n8n)
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-required-2496ED?logo=docker&logoColor=white)
-![n8n](https://img.shields.io/badge/n8n-2.44.7-EA4B71?logo=n8n&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-2.49.5-EA4B71?logo=n8n&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-n8n--mcp%202.103.1-D97757?logo=claude&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-n8n--mcp%202.103.2-D97757?logo=claude&logoColor=white)
 ![Node](https://img.shields.io/badge/node-%5E22.23%20%7C%20%5E24.22%20%7C%20%3E%3D26.12-brightgreen?logo=nodedotjs&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-required%20%28n8n--admin%29-orange?logo=pnpm&logoColor=white)
 
@@ -52,7 +52,7 @@ root
 > 설정은 모두 `services/n8n/.env` 에서 합니다. n8n 컨테이너는 `env_file` 로 이 파일을 그대로 읽습니다.
 > compose `${VAR}` 보간은 compose 가 직접 알아야 하는 값(이미지 태그·빌드 인자, 포트, DB 접속 정보, 백업 폴더)에만 씁니다. 호스트 셸의 `LANG`·`TZ` 가 `.env` 를 덮어쓰지 않도록 하기 위해서입니다.
 
-0. **버전 고정 (`N8N_VERSION=2.44.7`, `N8N_NODE_VERSION=26.13.1`)**
+0. **버전 고정 (`N8N_VERSION=2.49.5`, `N8N_NODE_VERSION=26.13.1`)**
    - stable 버전으로 고정: 컨테이너를 다시 만들 때 의도치 않은 업그레이드·DB 마이그레이션 방지 ([n8n releases](https://github.com/n8n-io/n8n/releases))
    - n8n 은 Node.js 만 교체한 로컬 이미지 `n8n-local:<N8N_VERSION>-node<N8N_NODE_VERSION>` 로 실행. 이유·되돌릴 조건은 `services/n8n/Dockerfile` 맨 위 주석
 1. **타임존 (Asia/Seoul)**
@@ -167,7 +167,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 - `N8N_MCP_ACCESS_TOKEN`(Instance-level MCP 키)은 설정하지 않아 🔒 도구를 쓸 수 없습니다. 같은 이유로 `n8n_test_workflow` 는 webhook·form·chat 트리거 워크플로우를 활성화한 뒤 호출하는 방식만 되고, 버전 이력은 n8n-mcp 스냅샷만, 데이터 테이블 컬럼은 바꿀 수 없습니다.
 - `.claude/settings.json` 은 `n8n-mcp-skills` 플러그인을 켭니다. n8n 작업 규칙: [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)
 
-#### n8n-mcp 도구 (2.103.1 기준 29개)
+#### n8n-mcp 도구 (2.103.2 기준 29개)
 
 | 그룹 | 도구 |
 |---|---|

@@ -2,6 +2,28 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.12.2] - 2026-11-25
+
+### 호환성
+
+- n8n 2.44.7 → 2.49.5: 첫 기동 때 DB 마이그레이션 59개 적용. 되돌리려면 업그레이드 전 DB 덤프를 복원
+  - 반영: `bin/n8n.sh backup` → `services/n8n/.env` 의 `N8N_VERSION=2.49.5` → `bin/n8n.sh restart`
+- PostgreSQL 이미지 `postgres:17-alpine` → `postgres:17.12-alpine`: 마이너 업데이트라 데이터 이전 없음. `restart` 가 이미지를 받음
+- n8n-mcp 2.103.2: `cd services/n8n-mcp && npm ci` 후 Claude Code 세션 새로 시작
+
+### 변경
+
+- n8n 2.49.5: 공식 이미지의 Node 가 아직 26.13.0 이라 Node 26.13.1 교체 빌드 유지
+  - 공식 이미지 기반이 Docker Hardened Images(Alpine 3.24)로 바뀌었지만 Dockerfile 은 그대로 동작
+- PostgreSQL 을 마이너까지 고정 (`docs/code-style.md` 버전 고정 규칙). n8n 지원 범위는 17·18, 16 은 호환용이고 같은 메이저의 최신 마이너 권장
+- n8n-mcp 2.103.1 → 2.103.2: `n8n_manage_variables` 오류 메시지 개선
+- 버전 표기 갱신
+  - `README.md`: 뱃지, 주요 설정 0번, n8n-mcp 도구 기준
+  - `docs/architecture.md`: 서비스 표, PostgreSQL 이미지
+  - `docs/code-style.md`: 버전 예시, 노드 버전 예시 (Convert to File 은 2.49.5 에서 1.2 까지)
+  - `docs/logging.md`: 로그 변수 기본값의 기준 버전 (값은 같음)
+  - `services/n8n/Dockerfile`: 공식 이미지 Node 확인 기록
+
 ## [0.12.1] - 2026-11-23
 
 ### 호환성

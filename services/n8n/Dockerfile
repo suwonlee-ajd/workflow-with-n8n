@@ -6,7 +6,7 @@
 # 이유: n8n 공식 이미지에 든 Node 가 보안 권고의 해결 버전보다 낮음
 # - 권고: ASEC Node.js 보안 업데이트 권고 (2026-11-17, https://asec.ahnlab.com/ko/96589/)
 # - 해결 버전: 22.23.5·24.22.3·26.13.1 이상
-# - n8n 2.44.7 은 Node 26.12.1, 최신 2.48.5·2.49.1·nightly 도 26.13.0 (2026-11-19 확인)
+# - n8n 2.49.5(stable)·2.50.0·nightly 모두 Node 26.13.0 (2026-11-25 확인)
 # 되돌릴 조건: 공식 이미지의 Node 가 보안 권고의 해결 버전 이상이면 이 파일을 지우고 공식 이미지로 복귀
 # - 같은 메이저에서 N8N_NODE_VERSION 이상이 되면 아래 확인 단계가 빌드를 멈춤
 # - 방법: README '4. 버전 업그레이드'
@@ -41,7 +41,7 @@ EOF
 
 # node 를 덮어씀
 # - 대상이 심볼릭 링크면 BuildKit 이 링크를 따라가 실제 파일을 덮어씀
-# - 실제 파일이 /usr/bin/node 인 2.44.7, /usr/local/bin/node 인 nightly 모두 확인
+# - 실제 파일이 /usr/bin/node 인 2.44.7, /usr/local/bin/node 인 2.49.5 모두 확인
 # - 사용자(node)·진입점(tini)은 원본 이미지 그대로
 COPY --from=node /usr/local/bin/node /usr/bin/node
 
