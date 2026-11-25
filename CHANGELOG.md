@@ -2,6 +2,12 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.12.3] - 2026-11-25
+
+### 수정
+
+- `README.md`, `docs/architecture.md` 디렉터리 구조: `services/n8n` 설명을 실제 실행 이미지에 맞춤 ("docker 배포 이미지 사용" → "Node 를 교체한 로컬 빌드 이미지")
+
 ## [0.12.2] - 2026-11-25
 
 ### 호환성
