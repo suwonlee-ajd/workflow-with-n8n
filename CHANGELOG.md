@@ -2,6 +2,32 @@
 
 이 저장소의 버전별 변경 내용이다. 버전은 `main` 병합 커밋에 붙이는 태그를 따른다 ([docs/code-style.md](docs/code-style.md) '버전 태그').
 
+## [0.13.0] - 2026-11-27
+
+### 추가
+
+- `bin/n8n.bat`, `bin/n8n-admin.bat`: Windows 에서 같은 이름의 `.sh` 를 Git for Windows 의 bash 로 실행
+  - 명령은 `.sh` 와 같음 (예: `bin\n8n.bat start`). 필요: Git for Windows, Docker Desktop
+  - bash 위치: 기본 설치 경로, 없으면 `git --exec-path` 기준
+  - 한글 출력을 위해 코드 페이지를 UTF-8 로 바꾸고 끝날 때 되돌림
+- `.gitattributes`: 텍스트 파일은 LF, `.bat` 만 CRLF 로 고정 (Windows 에서 clone 해도 `.sh` 가 LF)
+
+### 변경
+
+- `bin/n8n.sh`: Windows(Git Bash) 대응
+  - 프로젝트 루트를 `C:/...` 형식으로 잡음 (`pwd -W`)
+  - docker 에 넘기는 컨테이너 경로를 Windows 경로로 바꾸지 않음 (`MSYS_NO_PATHCONV=1`)
+  - `BACKUP_DIR`: Windows 에서는 `C:/...` 형식만 허용. macOS·Linux 는 그대로
+  - DB 비밀번호 안내의 compose 폴더 비교에서 `\` 구분자 처리
+- `bin/n8n-admin.sh`: `.env` 의 CR 을 지운 뒤 읽음 (`eval` 없이). 파일을 못 읽으면 중단
+- 두 스크립트의 안내 문구: `.bat` 으로 실행하면 실행 명령을 그 `.bat` 으로 표시
+- `.mcp.json`: `N8N_API_KEY` 를 읽을 때 CR 제거
+- 문서
+  - `README.md`: 2장·6장 Windows 안내, 백업 경로, 디렉터리 구조
+  - `docs/architecture.md`: 사전 준비, 백업 경로, 디렉터리 구조
+  - `docs/code-style.md`: 인코딩 규칙, 스크립트 틀, `.env` 읽기 방식, shellcheck 결과
+  - `services/n8n/.env.example`: `BACKUP_DIR` 의 Windows 형식
+
 ## [0.12.3] - 2026-11-25
 
 ### 수정

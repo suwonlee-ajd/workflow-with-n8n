@@ -18,8 +18,9 @@ Docker Compose로 n8n과 PostgreSQL을 띄우고, Claude Code가 n8n-mcp로 워�
 root
 ├── .claude/                         # Claude Code 규칙·스킬·설정
 ├── bin/                             # 실행 스크립트
-│   ├── n8n.sh                       
-│   └── n8n-admin.sh                 
+│   ├── n8n.sh
+│   ├── n8n-admin.sh
+│   └── *.bat                        # Windows 용: 같은 이름의 .sh 를 Git Bash 로 실행
 ├── services/
 │   ├── n8n                          # n8n (Node 를 교체한 로컬 빌드 이미지)
 │   │   ├── .env                     # 환경변수 — 비밀값 포함.
@@ -31,6 +32,7 @@ root
 │   │
 │   ├── n8n-mcp                      # n8n-mcp
 │   └── n8n-admin/                   # n8n-admin (데이터팝콘 제작)
+├── .gitattributes                   # 줄바꿈 고정: .sh 등은 LF, .bat 만 CRLF
 ├── .gitmodules                      # 서브모듈 원격 주소
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장)
 ├── data/                            # 데이터 계층
@@ -68,7 +70,7 @@ root
    - Code 노드에서 `require('fs')` 같은 Node.js 내장 모듈을 쓸 수 있게 함. 백업 워크플로우가 `fs`·`child_process` 사용
    - `Buffer`·`TextDecoder` 는 이 설정 없이도 사용 가능. 외부 API 의 EUC-KR 응답 변환은 '💡 한글 관련 실무 팁' 2번
 5. **백업 경로 (`BACKUP_DIR`)**
-   - 비우면 `data/backups`, 다른 위치는 절대 경로
+   - 비우면 `data/backups`, 다른 위치는 절대 경로 (Windows 는 `C:/...` 형식)
    - `bin/n8n.sh backup` 과 백업 워크플로우(매일 18:00)가 같은 경로에 저장. 자세한 내용은 [docs/architecture.md](docs/architecture.md) '데이터가 저장되는 곳'
 
 ---
@@ -94,6 +96,7 @@ bin/n8n.sh export    # 워크플로우 → services/n8n/workflows/*.json (3장)
 bin/n8n.sh import    # services/n8n/workflows/*.json → n8n (3장)
 ```
 
+- Windows: `bin\n8n.bat <명령>` 으로 같은 명령을 씁니다. Git for Windows 의 bash 로 `bin/n8n.sh` 를 실행하므로 Git for Windows·Docker Desktop 이 필요합니다.
 - compose 를 직접 쓸 때: `docker compose -f services/n8n/docker-compose.yml up -d` (같은 폴더의 `.env` 를 자동으로 읽음)
 - 컨테이너 로그: Docker 에는 컨테이너당 10MB×5개까지 남고, 컨테이너를 지우면 사라집니다. 그래서 `stop`·`restart` 가 지우기 직전에 `logs/` 로 기록합니다. `docker compose down` 을 직접 실행하면 기록 없이 사라집니다. 자세한 내용: [docs/logging.md](docs/logging.md)
 
@@ -165,6 +168,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
 | `N8N_MCP_TELEMETRY_DISABLED` | `true` | 사용 통계 전송 끔 |
 
 - `N8N_MCP_ACCESS_TOKEN`(Instance-level MCP 키)은 설정하지 않아 🔒 도구를 쓸 수 없습니다. 같은 이유로 `n8n_test_workflow` 는 webhook·form·chat 트리거 워크플로우를 활성화한 뒤 호출하는 방식만 되고, 버전 이력은 n8n-mcp 스냅샷만, 데이터 테이블 컬럼은 바꿀 수 없습니다.
+- Windows: `.mcp.json` 은 `sh` 로 API 키를 읽고 서버를 실행하므로 `sh` 가 PATH 에 있어야 합니다 (Git for Windows 의 `<Git>\bin` 을 PATH 에 추가).
 - `.claude/settings.json` 은 `n8n-mcp-skills` 플러그인을 켭니다. n8n 작업 규칙: [.claude/rules/n8n/common.md](.claude/rules/n8n/common.md)
 
 #### n8n-mcp 도구 (2.103.2 기준 29개)
@@ -197,7 +201,7 @@ Claude Code 가 [n8n-mcp](https://github.com/czlonkowski/n8n-mcp) 로 로컬 n8n
    | `NEXTAUTH_SECRET` | `openssl rand -base64 32` 로 생성 |
    | `NEXTAUTH_URL` | `http://localhost:3000` — **대시보드 접속 주소이자 포트 설정** |
    | `SLACK_WEBHOOK_URL` | (선택) 자동 정리 결과·오류 알림용 Incoming Webhook 주소 |
-4. **실행**: `bin/n8n-admin.sh start` → [http://localhost:3000](http://localhost:3000)
+4. **실행**: `bin/n8n-admin.sh start` (Windows: `bin\n8n-admin.bat start`) → [http://localhost:3000](http://localhost:3000)
 
 - 포트는 `NEXTAUTH_URL` 의 포트만 고칩니다. `bin/n8n-admin.sh` 가 여기서 포트를 읽어 띄웁니다 (`pnpm dev` 를 직접 실행하면 3000번에 떠서 모든 요청이 404).
 - `localhost` 로 접속합니다. `NEXTAUTH_URL` 과 다른 주소(`127.0.0.1` 등)는 404 입니다.

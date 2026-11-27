@@ -14,15 +14,22 @@ cd "$ROOT"
 ENV_FILE="services/n8n-admin/.env"
 ADMIN_DIR="services/n8n-admin/admin"     # 대시보드(Next.js) 폴더
 DEFAULT_URL="http://localhost:3000"      # NEXTAUTH_URL 이 없을 때의 접속 주소
+SELF_CMD="${CALLED_AS:-bin/n8n-admin.sh}" # 안내 문구의 실행 명령 (.bat 으로 실행하면 그 .bat)
 
 # 대시보드(Next.js)는 admin/ 아래 env 파일만 읽으므로, n8n-admin/.env 값을 프로세스 환경변수로 넘김
 load_env() {
+  local env_text
   if [ ! -f "$ENV_FILE" ]; then
     echo "❌ $ENV_FILE 가 없습니다. 먼저 실행: cp services/n8n-admin/.env.example $ENV_FILE 후 값 입력"
     exit 1
   fi
+  # CR 을 지운 내용을 변수에 먼저 담음
+  # - CRLF 로 저장한 .env 대비: 값 끝에 CR 이 붙으면 NEXTAUTH_URL 불일치로 404
+  # - 파일을 못 읽으면 이 대입에서 set -e 로 중단
+  env_text="$(tr -d '\r' < "$ENV_FILE")"
   set -a
-  source "$ENV_FILE"
+  # macOS 기본 bash 3.2 는 source <(...) 를 읽지 못해 /dev/stdin 사용
+  source /dev/stdin <<< "$env_text"
   set +a
 }
 
@@ -53,7 +60,7 @@ case "$1" in
     echo "$PORT"
     ;;
   *)
-    echo "사용법: bin/n8n-admin.sh {start|port}"
+    echo "사용법: $SELF_CMD {start|port}"
     exit 1
     ;;
 esac
