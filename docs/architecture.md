@@ -91,7 +91,7 @@
   - 18:00 에 Mac 이 절전 중이면 그날 백업은 건너뜀. 스케줄러가 놓친 실행을 다시 돌리지 않음
   - 백업 파일은 자동으로 지워지지 않음
 - 위치
-  - `BACKUP_DIR`: `services/n8n/.env` 에서 지정. 비우면 `data/backups`, 다른 위치는 절대 경로
+  - `BACKUP_DIR`: `services/n8n/.env` 에서 지정. 비우면 `data/backups`, 다른 위치는 절대 경로 (Windows 는 `C:/...` 형식)
   - `bin/n8n.sh backup` 과 compose 의 폴더 연결이 같은 `BACKUP_DIR` 을 읽음
   - 서비스명: 컨테이너 이름 `n8n`, `n8n-postgres`
 - `bin/n8n.sh backup` (수동 실행)
@@ -124,7 +124,8 @@ root
 ├── .claude/                         # Claude Code 규칙·스킬·설정
 ├── bin/                             # 실행 스크립트
 │   ├── n8n.sh
-│   └── n8n-admin.sh
+│   ├── n8n-admin.sh
+│   └── *.bat                        # Windows 용: 같은 이름의 .sh 를 Git Bash 로 실행
 ├── services/
 │   ├── n8n                          # n8n (Node 를 교체한 로컬 빌드 이미지)
 │   │   ├── .env                     # 환경변수 — 비밀값 포함.
@@ -136,6 +137,7 @@ root
 │   │
 │   ├── n8n-mcp                      # n8n-mcp
 │   └── n8n-admin/                   # n8n-admin (데이터팝콘 제작)
+├── .gitattributes                   # 줄바꿈 고정: .sh 등은 LF, .bat 만 CRLF
 ├── .gitmodules                      # 서브모듈 원격 주소
 ├── .mcp.json                        # Claude Code 프로젝트 MCP 등록 (6장)
 ├── data/                            # 데이터 계층
@@ -216,7 +218,7 @@ Claude Code ──▶ n8n-mcp ──▶ n8n (DB) ─ ─▶ bin/n8n.sh export �
 
 ## 서비스별 출처와 설치
 
-사전 준비: git, Docker(Compose 포함), Node.js(보안 권고의 해결 버전 이상, README 6장)와 npm, openssl, curl. pnpm 은 n8n-admin 을 쓸 때만 필요하다.
+사전 준비: git, Docker(Compose 포함), Node.js(보안 권고의 해결 버전 이상, README 6장)와 npm, openssl, curl. pnpm 은 n8n-admin 을 쓸 때만 필요하다. Windows 는 Git for Windows 도 필요하다 (README 2장).
 
 ### n8n
 

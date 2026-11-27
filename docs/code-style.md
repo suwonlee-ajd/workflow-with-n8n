@@ -17,7 +17,7 @@
 
 | 항목 | 규칙 |
 |------|------|
-| 인코딩 | UTF-8, LF, 파일 끝 줄바꿈 1개 |
+| 인코딩 | UTF-8, LF, 파일 끝 줄바꿈 1개. `.bat` 만 CRLF (`.gitattributes` 로 고정) |
 | 들여쓰기 | 스페이스 2칸 (Bash, YAML, JSON, JavaScript) |
 | 언어 | 주석·출력 메시지·문서는 한국어. 변수·함수·파일 이름과 명령어·기술 용어는 영어 원어 |
 | 파일 이름 | 영문 소문자, 단어는 하이픈으로 연결 (`n8n-admin.sh`, `code-style.md`) |
@@ -83,9 +83,11 @@ set -e
 set -o pipefail                   # 파이프 중간 명령이 실패해도 멈추도록
 
 # 프로젝트 루트 (bin/ 의 상위) 기준으로 경로를 잡음
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+# - Windows(Git Bash): pwd -W 의 C:/... 형식
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && { pwd -W 2>/dev/null || pwd; })"
 cd "$ROOT"
 
+SELF_CMD="${CALLED_AS:-bin/<서비스>.sh}" # 안내 문구의 실행 명령 (.bat 으로 실행하면 그 .bat)
 ENV_FILE="services/<서비스>/.env"
 
 case "$1" in
@@ -95,7 +97,7 @@ case "$1" in
     echo "✅ <서비스>가 실행되었습니다."
     ;;
   *)
-    echo "사용법: bin/<서비스>.sh {start|...}"
+    echo "사용법: $SELF_CMD {start|...}"
     exit 1
     ;;
 esac
@@ -110,13 +112,17 @@ esac
 - 같은 옵션을 매번 붙이는 명령은 함수로 감쌈 (`compose()` 가 `--env-file`·`-f` 를 항상 붙임)
 - 첫 인자는 하위 명령(`case "$1"`), 나머지 인자는 `"${@:2}"` 로 그대로 넘김
 - 하위 명령을 추가하거나 바꾸면 사용법 문구와 [README](../README.md) '2. 관리 명령어'도 함께 고침
+- Windows: 같은 이름의 `.bat` 을 `bin/n8n.bat` 에서 그대로 복사. docker 에 컨테이너 경로를 넘기는 스크립트는 `export MSYS_NO_PATHCONV=1`
 
 ### 작성 방식
 
 - 변수는 항상 큰따옴표로 감싸고, 명령 치환은 `$(...)` 사용
 - `.env` 읽기
   - 값 하나만 필요할 때: `sed -n 's/^KEY=//p' "$ENV_FILE"` (셸에 불러오지 않음). `bin/n8n.sh` 에서는 이를 감싼 `env_value <키>` 사용
-  - 하위 프로세스에 전부 넘겨야 할 때만: `set -a; source "$ENV_FILE"; set +a`
+  - 하위 프로세스에 전부 넘겨야 할 때만: `env_text="$(tr -d '\r' < "$ENV_FILE")"` 후 `set -a; source /dev/stdin <<< "$env_text"; set +a`
+    - CR 제거: Windows 에서 CRLF 로 저장한 파일 대비
+    - 변수에 먼저 담음: 파일을 못 읽으면 대입에서 `set -e` 로 중단
+    - `eval` 은 쓰지 않음. `source <(...)` 는 macOS 기본 bash 3.2 가 읽지 못함
 - 실패 처리
   - 기본은 `set -e` 로 중단
   - 실패해도 계속할 단계는 `|| continue` 나 `if … else` 로 드러내고, ⚠️ 메시지에 "계속 진행합니다" 표시
@@ -410,4 +416,4 @@ git push origin v0.8.0
 |------|------|
 | 필드 이름 언어 | Set·Code 노드에서 정의한 필드 이름 144개 중 영문 camelCase 135개(94%), 한글 9개(6%). 한글은 모두 `[메인] 검색: 네이버 통합검색` (`목록`, `구분`, `제목` 등) |
 | `errorWorkflow` 미지정 | 6개. 이 중 게시(활성)된 것은 주식 4개 |
-| shellcheck 결과 | `bin/n8n-admin.sh` 의 `source` 경고(SC1090) 1건. `bin/n8n.sh` 는 의도한 작은따옴표(SC2016)와 `ls` 로 개수 세기(SC2012) 안내 3건 |
+| shellcheck 결과 | `bin/n8n-admin.sh` 의 `source /dev/stdin` 안내(SC1091) 1건 (2026-11-27). `bin/n8n.sh` 는 의도한 작은따옴표(SC2016)·패턴 비교(SC2053)와 `ls` 로 개수 세기(SC2012) 4건 |
