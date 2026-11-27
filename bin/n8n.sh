@@ -8,9 +8,17 @@ set -e
 set -o pipefail                   # 파이프 중간 명령(pg_dump 등)이 실패해도 멈추도록
 
 # 프로젝트 루트 (bin/ 의 상위) 기준으로 경로를 잡음
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+# - Windows(Git Bash): pwd -W 의 C:/... 형식
+# - docker 에 넘기는 호스트 경로도 이 형식이어야 함
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && { pwd -W 2>/dev/null || pwd; })"
 cd "$ROOT"
 
+# Windows(Git Bash): docker 에 넘기는 컨테이너 경로를 그대로 둠
+# - 예: /tmp/workflows 를 C:/... 로 바꾸지 않도록
+# - 다른 OS 는 영향 없음
+export MSYS_NO_PATHCONV=1
+
+SELF_CMD="${CALLED_AS:-bin/n8n.sh}" # 안내 문구의 실행 명령 (.bat 으로 실행하면 그 .bat)
 ENV_FILE="services/n8n/.env"
 ENV_EXAMPLE="services/n8n/.env.example"
 MCP_DIR="services/n8n-mcp"        # Claude Code 가 쓰는 n8n-mcp 서버
@@ -24,7 +32,7 @@ WORKFLOW_TMP="/tmp/workflows"     # 컨테이너 안 임시 경로 (export·impo
 # .env 가 없으면 init 을 안내하고 중단
 require_env() {
   if [ ! -f "$ENV_FILE" ]; then
-    echo "❌ $ENV_FILE 가 없습니다. 먼저 실행: bin/n8n.sh init"
+    echo "❌ $ENV_FILE 가 없습니다. 먼저 실행: $SELF_CMD init"
     exit 1
   fi
 }
@@ -75,9 +83,12 @@ fill_secret() {
 # 백업 경로를 .env 의 BACKUP_DIR 에서 읽음
 # - 비어 있으면 프로젝트 루트의 data/backups
 # - 절대 경로만 허용: compose 가 같은 값을 services/n8n 기준 상대 경로로 해석하므로
+# - Windows(Git Bash) 는 C:/... 형식만: /c/... 는 docker 가 Windows 경로로 받지 못함
 BACKUP_DIR="$(env_value BACKUP_DIR)"
-if [ -n "$BACKUP_DIR" ] && [ "${BACKUP_DIR#/}" = "$BACKUP_DIR" ]; then
-  echo "❌ $ENV_FILE 의 BACKUP_DIR 은 절대 경로여야 합니다: $BACKUP_DIR (비우면 data/backups 사용)"
+ABS_PATH_GLOB='/*'
+[[ "$OSTYPE" != msys* ]] || ABS_PATH_GLOB='[A-Za-z]:[\\/]*'
+if [[ -n "$BACKUP_DIR" && "$BACKUP_DIR" != $ABS_PATH_GLOB ]]; then # 따옴표 없음: 패턴으로 비교
+  echo "❌ $ENV_FILE 의 BACKUP_DIR 은 절대 경로여야 합니다: $BACKUP_DIR (Windows 는 C:/... 형식, 비우면 data/backups 사용)"
   exit 1
 fi
 BACKUP_DIR="${BACKUP_DIR:-$ROOT/data/backups}"
@@ -139,7 +150,7 @@ wait_healthy() {
   local timeout="${HEALTH_TIMEOUT:-120}" port base deadline restarts=0
   local reason="${timeout}초 안에 n8n 이 응답하지 않았습니다."
   if ! command -v curl >/dev/null 2>&1; then
-    echo "⚠️ curl 명령이 없어 n8n 응답을 확인하지 못했습니다. bin/n8n.sh status·logs 로 확인하세요."
+    echo "⚠️ curl 명령이 없어 n8n 응답을 확인하지 못했습니다. $SELF_CMD status·logs 로 확인하세요."
     return 0
   fi
   port="$(n8n_port)"
@@ -160,7 +171,7 @@ wait_healthy() {
     sleep 2
   done
   if [ "$restarts" -eq 0 ] && container_running n8n; then
-    echo "⚠️ ${timeout}초가 지났지만 n8n 이 아직 뜨는 중입니다 (컨테이너는 재시작 없이 실행 중). 중단하지 말고 bin/n8n.sh logs 로 진행을 확인하세요."
+    echo "⚠️ ${timeout}초가 지났지만 n8n 이 아직 뜨는 중입니다 (컨테이너는 재시작 없이 실행 중). 중단하지 말고 $SELF_CMD logs 로 진행을 확인하세요."
     return 0
   fi
   echo "❌ $reason 최근 로그:"
@@ -206,7 +217,8 @@ db_password_guide() {
   echo "❌ POSTGRES_PASSWORD: DB 볼륨($DB_VOLUME)이 이미 있어 새 비밀번호를 만들지 않았습니다."
   echo "   이 볼륨은 폴더와 상관없이 이 PC 에 하나뿐이라, 비밀번호를 바꾸면 이 볼륨을 쓰던 다른 폴더의 .env 와 맞지 않게 됩니다."
   echo "   - 쓰던 .env 가 있으면: 그 파일의 POSTGRES_PASSWORD 값을 $ENV_FILE 에 넣고 다시 실행"
-  if [ -n "$owner" ] && [ "$owner" != "$ROOT/services/n8n" ]; then
+  # Windows 의 compose 라벨은 \ 구분자라 / 로 바꿔 비교
+  if [ -n "$owner" ] && [ "${owner//\\//}" != "$ROOT/services/n8n" ]; then
     echo "     (지금 이 볼륨의 컨테이너를 띄운 폴더: $owner)"
   fi
   echo "   - 쓰던 .env 가 없으면: README '5. DB (PostgreSQL) 설정' 의 '쓰던 .env 를 잃었을 때' 순서로 DB 비밀번호를 직접 변경"
@@ -282,7 +294,7 @@ init() {
   fi
 
   echo "✅ 초기 설정 완료. 다음 순서:"
-  echo "   1. bin/n8n.sh start → http://localhost:$(n8n_port) 에서 관리자 계정 생성"
+  echo "   1. $SELF_CMD start → http://localhost:$(n8n_port) 에서 관리자 계정 생성"
   echo "   2. n8n Settings > n8n API 에서 키 발급 → $ENV_FILE 의 N8N_API_KEY 에 입력 (n8n-mcp 용)"
 }
 
@@ -355,7 +367,7 @@ case "$1" in
     echo "✅ 가져오기 완료."
     ;;
   *)
-    echo "사용법: bin/n8n.sh {init|start|stop|restart|logs|status|backup|export|import}"
+    echo "사용법: $SELF_CMD {init|start|stop|restart|logs|status|backup|export|import}"
     exit 1
     ;;
 esac
