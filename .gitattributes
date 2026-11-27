@@ -1,0 +1,4 @@
+# 줄바꿈: 텍스트 파일은 모두 LF, Windows 배치 파일만 CRLF
+# - Windows 에서 core.autocrlf=true 로 clone 해도 .sh·Dockerfile·.env.example 이 LF 로 받아지도록 (CRLF 면 bash 가 실행하지 못함)
+* text=auto eol=lf
+*.bat text eol=crlf
